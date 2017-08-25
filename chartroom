@@ -6,7 +6,7 @@ my_version = '0.1'
 
 if __name__ == '__main__':
     gui = LapChartGUI()
-    gui.master.title('LapChart v%s' % my_version)
+    gui.master.title('ChartRoom v%s' % my_version)
 
     gui.getCell(1,1).set("10")
     gui.getCell(1,2).set("2")
