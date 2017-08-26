@@ -1,5 +1,8 @@
 #!/usr/bin/env python
 
+import csv
+import sys
+
 from lapchart_gui import LapChartGUI
 
 my_version = '0.1'
@@ -35,27 +38,54 @@ class chartdata:
         if self.gui:
             self.cells[lap-1][pos-1][0].set(self.cars[car])
 
+    def car(self, car_id, **args):
+        if car_id not in self.cars and len(args) == 0:
+            return None
+        if car_id not in self.cars:
+            self.cars[car_id] = { 'no' : '??', 'laps' : 0 }
+        for k in args:
+            self.cars[car_id][k] = args[k]
+        return self.cars[car_id]
+
+def load_passings(data, path):
+    with open(path, 'rb') as pfile:
+        reader = csv.DictReader(pfile, delimiter='\t', quoting=csv.QUOTE_NONE)
+        for row in reader:
+            car_no = row['No.']
+            if car_no == '' or car_no == '??': continue
+            lap = int(row['Laps'].strip('P '))
+            if lap <= 0: continue
+            lead = int(row['Lead'])
+            class_ = row['Class']
+            driver = row['Name']
+            car_id = class_ + '_' + car_no + '_' + driver
+            car = data.car(car_id, no=car_no, class_=class_)
+            if lap <= car['laps']: continue
+            data.add(car_id, lap=lap, lead=lead)
+
 if __name__ == '__main__':
     gui = LapChartGUI()
     gui.master.title('ChartRoom v%s' % my_version)
     data = chartdata(gui)
 
-    data.add('10') # 1, 1
-    data.add('2',) # 1, 2
-    data.add('08') # 1, 3
-    data.add('55') # 1, 4
-    data.add('42') # 1, 5
-    data.add('10') # 2, 1
-    data.add('08') # 2, 2
-    data.add('2',) # 2, 3
-    data.add('55') # 2, 4
-    data.add('08') # 3, 1
-    data.add('42') # 2, 5
-    data.add('10') # 3, 2
-    data.add('2',) # 3, 3
-    data.add('55') # 3, 4
-
-    data.add('15', 1,15)
-    data.add('1', 14, 1)
+    if len(sys.argv) > 1:
+        load_passings(data, sys.argv[1])
+    else:
+        data.add('10') # 1, 1
+        data.add('2',) # 1, 2
+        data.add('08') # 1, 3
+        data.add('55') # 1, 4
+        data.add('42') # 1, 5
+        data.add('10') # 2, 1
+        data.add('08') # 2, 2
+        data.add('2',) # 2, 3
+        data.add('55') # 2, 4
+        data.add('08') # 3, 1
+        data.add('42') # 2, 5
+        data.add('10') # 3, 2
+        data.add('2',) # 3, 3
+        data.add('55') # 3, 4
+        data.add('15', 1,15)
+        data.add('1', 14, 1)
 
     gui.mainloop()
