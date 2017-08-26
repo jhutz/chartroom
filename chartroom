@@ -4,27 +4,58 @@ from lapchart_gui import LapChartGUI
 
 my_version = '0.1'
 
+class chartdata:
+    def __init__(self, gui=None):
+        self.gui = gui
+        self.cars = {}
+        self.cells = []
+
+    def add(self, car, lap=None, pos=None, lead=None):
+        if car not in self.cars:
+            self.cars[car] = { 'no' : car, 'laps' : 0 }
+
+        if lap == None:
+            lap = self.cars[car]['laps'] + 1
+        if lap > len(self.cells):
+            self.cells.extend([[] for i in range(lap - len(self.cells))])
+        if lap > self.cars[car]['laps']:
+            self.cars[car]['laps'] = lap
+        if lead == None:
+            lead = len(self.cells)
+            if lead < lap: lead = lap
+        if pos == None:
+            pos = len(self.cells[lap-1]) + 1
+        if pos > len(self.cells[lap-1]):
+            self.cells[lap-1].extend([None] * (pos - len(self.cells[lap-1])))
+        if self.cells[lap-1][pos-1] == None:
+            self.cells[lap-1][pos-1] = [None] * 3
+            if self.gui: self.cells[lap-1][pos-1][0] = self.gui.getCell(lap,pos)
+        self.cells[lap-1][pos-1][1] = car
+        self.cells[lap-1][pos-1][2] = lead
+        if self.gui:
+            self.cells[lap-1][pos-1][0].set(self.cars[car])
+
 if __name__ == '__main__':
     gui = LapChartGUI()
     gui.master.title('ChartRoom v%s' % my_version)
+    data = chartdata(gui)
 
-    gui.getCell(1,1).set("10")
-    gui.getCell(1,2).set("2")
-    gui.getCell(1,3).set("08")
-    gui.getCell(1,4).set("55")
-    gui.getCell(1,8).set("42")
+    data.add('10') # 1, 1
+    data.add('2',) # 1, 2
+    data.add('08') # 1, 3
+    data.add('55') # 1, 4
+    data.add('42') # 1, 5
+    data.add('10') # 2, 1
+    data.add('08') # 2, 2
+    data.add('2',) # 2, 3
+    data.add('55') # 2, 4
+    data.add('08') # 3, 1
+    data.add('42') # 2, 5
+    data.add('10') # 3, 2
+    data.add('2',) # 3, 3
+    data.add('55') # 3, 4
 
-    gui.getCell(2,1).set("10")
-    gui.getCell(2,2).set("08")
-    gui.getCell(2,3).set("2")
-    gui.getCell(2,4).set("55")
-
-    gui.getCell(4,1).set("08")
-    gui.getCell(4,2).set("10")
-    gui.getCell(4,3).set("2")
-    gui.getCell(4,4).set("55")
-
-    gui.getCell(1,15).set("15")
-    gui.getCell(14,1).set("1")
+    data.add('15', 1,15)
+    data.add('1', 14, 1)
 
     gui.mainloop()
