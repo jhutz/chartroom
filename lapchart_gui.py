@@ -7,8 +7,7 @@ FILL_PARENT = tk.N+tk.S+tk.E+tk.W
 
 class LapChartGUICell:
     def __init__(self, canvas, lap, pos):
-        self.car  = None
-        self.lead = None
+        self.data  = None
         self.car_v = tk.StringVar()
 
         self.canvas = canvas
@@ -16,11 +15,17 @@ class LapChartGUICell:
                 bg="white", textvariable=self.car_v)
         self.car_lbl.grid(column=lap-1, row=pos-1)
 
-    def set(self, car, lead=None):
-        self.car  = car
-        self.lead = lead
-        if car == None: self.car_v.set('')
-        else:           self.car_v.set(self.car.car_no())
+    def set_data(self, data):
+        self.data  = data
+        self.update()
+
+    def update(self):
+        if not self.data:
+            self.car_v.set('')
+            return
+        car = self.data.car()
+        if car: self.car_v.set(car.car_no())
+        else: self.car_v.set('')
 
 class LapChartFrame(tk.Frame):
     def __init__(self, master):
