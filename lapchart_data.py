@@ -30,6 +30,8 @@ class chartdatacell:
         self.pos = pos
         self._car = None
         self._lead = None
+        self.bar_above = False
+        self.bar_left = False
         if gui:
             self.gui = gui.getCell(lap, pos)
             self.gui.set_data(self)
@@ -37,6 +39,25 @@ class chartdatacell:
             self.gui = None
 
     def update_gui(self):
+        if self.gui: self.gui.update()
+
+    def update_bars(self):
+        self.bar_above = False
+        self.bar_left = False
+        if self._lead is None:
+            if self.gui: self.gui.update()
+            return
+        down = self.laps_down()
+        if self.pos > 1:
+            other_cell = self.parent.lookup(self.lap, self.pos - 1)
+            if other_cell:
+                other_down = other_cell.laps_down()
+                if other_down: self.bar_above = (down != other_down)
+        if self.lap > 1:
+            other_cell = self.parent.lookup(self.lap - 1, self.pos)
+            if other_cell:
+                other_down = other_cell.laps_down()
+                if other_down: self.bar_left = (down != other_down)
         if self.gui: self.gui.update()
 
     def reset(self):
@@ -53,8 +74,20 @@ class chartdatacell:
     def lead(self, val=None):
         if val is not None:
             self._lead = val
+            self.update_bars()
+            other_cell = self.parent.lookup(self.lap, self.pos + 1)
+            if other_cell: other_cell.update_bars()
+            other_cell = self.parent.lookup(self.lap + 1, self.pos)
+            if other_cell: other_cell.update_bars()
             if self.gui: self.gui.update()
         return self._lead
+
+    def laps_down(self):
+        if self._lead is None: return None
+        return self._lead - self.lap
+
+    def bars(self):
+        return (self.bar_above, self.bar_left)
 
 
 class chartdata:
