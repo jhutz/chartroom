@@ -11,6 +11,11 @@
 /ChartFont      {    7 /Helvetica           doFont } def
 /ChartBoldFont  {    7 /Helvetica-Bold      doFont } def
 
+/ChartModePlain { ChartFont     0 setgray } def
+/ChartModeOdd   { ChartBoldFont 0 0 1 setrgbcolor } def
+/ChartModeEven  { ChartBoldFont 1 0 0 setrgbcolor } def
+/ChartModeFinal { ChartBoldFont 1 0 1 setrgbcolor } def
+
 /inch {72 mul} def
 /logo_bbox {14 14 344 250} def  % Copy from logo EPS header
 /logo_scale 0.70 def

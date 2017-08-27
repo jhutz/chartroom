@@ -2,6 +2,7 @@
 
 import csv
 import sys
+import os
 
 from lapchart_gui import LapChartGUI
 
@@ -12,6 +13,7 @@ class chartdata:
         self.gui = gui
         self.cars = {}
         self.cells = []
+        self.maxpos = 0
 
     def add(self, car, lap=None, pos=None, lead=None):
         if car not in self.cars:
@@ -28,6 +30,7 @@ class chartdata:
             if lead < lap: lead = lap
         if pos == None:
             pos = len(self.cells[lap-1]) + 1
+        if pos > self.maxpos: self.maxpos = pos
         if pos > len(self.cells[lap-1]):
             self.cells[lap-1].extend([None] * (pos - len(self.cells[lap-1])))
         if self.cells[lap-1][pos-1] == None:
@@ -47,6 +50,20 @@ class chartdata:
             self.cars[car_id][k] = args[k]
         return self.cars[car_id]
 
+    def num_laps(self):
+        return len(self.cells)
+
+    def max_pos(self, lap=None):
+        if lap == None: return self.maxpos
+        if lap > len(self.cells): return None
+        return len(self.cells[lap-1])
+
+    def lookup(self, lap, pos):
+        if lap > len(self.cells): return None
+        if pos > len(self.cells[lap-1]): return None
+        cell = self.cells[lap-1][pos-1]
+        return (self.cars[cell[1]], cell[2])
+
 def load_passings(data, path):
     with open(path, 'rb') as pfile:
         reader = csv.DictReader(pfile, delimiter='\t', quoting=csv.QUOTE_NONE)
@@ -62,6 +79,34 @@ def load_passings(data, path):
             car = data.car(car_id, no=car_no, class_=class_)
             if lap <= car['laps']: continue
             data.add(car_id, lap=lap, lead=lead)
+
+def save_ps(data, path):
+    if hasattr(sys, "frozen"):
+        mainprog = sys.executable
+    else:
+        mainprog = sys.argv[0]
+    tpath = os.path.join(os.path.dirname(mainprog), 'template.ps')
+    with open(tpath, 'r') as template, open(path, 'w') as output:
+        for line in template:
+            if line.strip() == '%%Insert-Chart-Here':
+                mode = "Plain"
+                laps = data.num_laps()
+                output.write("%d %d ChartFrame\n" % (laps, data.max_pos()))
+                output.write("ChartFont\n")
+                for lap in range(1, 1+laps):
+                    for pos in range(1, 1+data.max_pos(lap)):
+                        (car, lead) = data.lookup(lap, pos)
+                        if lead == laps: newmode = "Final"
+                        elif lead % 5:   newmode = "Plain"
+                        elif lead % 10:  newmode = "Odd"
+                        else:            newmode = "Even"
+                        if mode != newmode:
+                            output.write("ChartMode%s\n" % newmode)
+                            mode = newmode
+                        output.write("%d %d (%s) ChartCell\n" %
+                                (lap, pos, car['no']))
+            else:
+                output.write(line)
 
 if __name__ == '__main__':
     gui = LapChartGUI()
@@ -88,4 +133,7 @@ if __name__ == '__main__':
         data.add('15', 1,15)
         data.add('1', 14, 1)
 
-    gui.mainloop()
+    if len(sys.argv) > 2:
+        save_ps(data, sys.argv[2])
+    else:
+        gui.mainloop()
