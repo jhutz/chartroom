@@ -6,26 +6,63 @@ pos_row_size=20
 FILL_PARENT = tk.N+tk.S+tk.E+tk.W
 
 class LapChartGUICell:
-    def __init__(self, canvas, lap, pos):
+    def __init__(self, canvas, frame, lap, pos):
         self.data  = None
         self.car_v = tk.StringVar()
+        self.bar_above = None
+        self.bar_left = None
 
         self.canvas = canvas
-        self.car_lbl = tk.Label(self.canvas, anchor=tk.CENTER,
+        self.frame = frame
+        self.car_lbl = tk.Label(self.frame, anchor=tk.CENTER,
                 bg="white", textvariable=self.car_v)
-        self.car_lbl.grid(column=lap-1, row=pos-1)
+        #if lap == pos: self.car_lbl.config(bg="yellow")
+        self.car_lbl.bind('<Configure>', self._configure)
+        self.car_lbl.grid(column=lap-1, row=pos-1, sticky=FILL_PARENT)
+
+    def _configure(self, event):
+        x0 = self.car_lbl.winfo_x()
+        y0 = self.car_lbl.winfo_y()
+        x1 = x0 + self.car_lbl.winfo_width()
+        y1 = y0 + self.car_lbl.winfo_height()
+        if self.bar_above is not None:
+            self.canvas.coords(self.bar_above, x0, y0, x1, y0)
+        else:
+            self.bar_above = self.canvas.create_line(x0, y0, x1, y0)
+        if self.bar_left is not None:
+            self.canvas.coords(self.bar_left, x0, y0, x0, y1)
+        else:
+            self.bar_left = self.canvas.create_line(x0, y0, x0, y1)
+        self.update_bars()
 
     def set_data(self, data):
         self.data  = data
         self.update()
 
+    def update_bars(self):
+        if self.data:
+            bars = self.data.bars()
+        else:
+            bars = (False, False)
+        if self.bar_above is not None:
+            self.canvas.itemconfigure(self.bar_above,
+                    state = tk.NORMAL if bars[0] else tk.DISABLED)
+        if self.bar_left is not None:
+            self.canvas.itemconfigure(self.bar_left,
+                    state = tk.NORMAL if bars[1] else tk.DISABLED)
+        if bars[0] or bars[1]:
+            self.car_lbl.config(bg="yellow")
+        else:
+            self.car_lbl.config(bg="white")
+
     def update(self):
-        if not self.data:
+        if self.data:
+            car = self.data.car()
+            if car: self.car_v.set(car.car_no())
+            else: self.car_v.set('')
+        else:
             self.car_v.set('')
-            return
-        car = self.data.car()
-        if car: self.car_v.set(car.car_no())
-        else: self.car_v.set('')
+        self.update_bars()
 
 class LapChartFrame(tk.Frame):
     def __init__(self, master):
@@ -126,7 +163,7 @@ class LapChartFrame(tk.Frame):
             lbl = tk.Label(self.lap_frame, anchor=tk.CENTER, text=i+1)
             lbl.grid(row=0, column=i, sticky=FILL_PARENT)
             self.lap_lbls.append(lbl)
-            cell = LapChartGUICell(self.lc_frame, i+1, 1)
+            cell = LapChartGUICell(self.lc_canvas, self.lc_frame, i+1, 1)
             self.cells.append([cell])
         while pos > len(self.pos_lbls):
             i = len(self.pos_lbls)
@@ -136,7 +173,8 @@ class LapChartFrame(tk.Frame):
             lbl.grid(row=i, column=0, sticky=tk.E)
             self.pos_lbls.append(lbl)
         while pos > len(self.cells[lap-1]):
-            cell = LapChartGUICell(self.lc_frame, lap, len(self.cells[lap-1])+1)
+            cell = LapChartGUICell(self.lc_canvas, self.lc_frame,
+                    lap, len(self.cells[lap-1])+1)
             self.cells[lap-1].append(cell)
         return self.cells[lap-1][pos-1]
 
