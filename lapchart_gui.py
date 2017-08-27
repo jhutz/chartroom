@@ -19,7 +19,8 @@ class LapChartGUICell:
     def set(self, car, lead=None):
         self.car  = car
         self.lead = lead
-        self.car_v.set(car['no'])
+        if car == None: self.car_v.set('')
+        else:           self.car_v.set(self.car.car_no())
 
 class LapChartFrame(tk.Frame):
     def __init__(self, master):

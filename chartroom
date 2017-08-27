@@ -8,6 +8,54 @@ from lapchart_gui import LapChartGUI
 
 my_version = '0.1'
 
+class chartcar:
+    # XXX update GUI when something changes
+    def __init__(self, parent, car_id, car_no='??'):
+        self.parent = parent
+        self.id = id
+        self._car_no = car_no
+        self._laps = 0
+        self._class = None
+
+    def car_no(self, val=None):
+        if val != None: self._car_no = val
+        return self._car_no
+
+    def laps(self, val=None):
+        if val != None: self._laps = val
+        return self._laps
+
+    def class_(self, val=None):
+        if val != None: self._class = val
+        return self._class
+
+class chartdatacell:
+    # XXX update GUI when something changes
+    def __init__(self, parent, lap, pos, gui=None):
+        self.parent = parent
+        self.lap = lap
+        self.pos = pos
+        if gui: self.gui = gui.getCell(lap, pos)
+        else:   self.gui = None
+        self._car = None
+        self._lead = None
+
+    def reset(self):
+        self._car = None
+        self._lead = None
+        if self.gui: self.gui.set(None)
+
+    def car(self, val=None):
+        if val != None:
+            self._car = val
+            if self.gui: self.gui.set(val)
+        return self._car
+
+    def lead(self, val=None):
+        if val != None: self._lead = val
+        return self._lead
+
+
 class chartdata:
     def __init__(self, gui=None):
         self.gui = gui
@@ -15,39 +63,11 @@ class chartdata:
         self.cells = []
         self.maxpos = 0
 
-    def add(self, car, lap=None, pos=None, lead=None):
-        if car not in self.cars:
-            self.cars[car] = { 'no' : car, 'laps' : 0 }
-
-        if lap == None:
-            lap = self.cars[car]['laps'] + 1
-        if lap > len(self.cells):
-            self.cells.extend([[] for i in range(lap - len(self.cells))])
-        if lap > self.cars[car]['laps']:
-            self.cars[car]['laps'] = lap
-        if lead == None:
-            lead = len(self.cells)
-            if lead < lap: lead = lap
-        if pos == None:
-            pos = len(self.cells[lap-1]) + 1
-        if pos > self.maxpos: self.maxpos = pos
-        if pos > len(self.cells[lap-1]):
-            self.cells[lap-1].extend([None] * (pos - len(self.cells[lap-1])))
-        if self.cells[lap-1][pos-1] == None:
-            self.cells[lap-1][pos-1] = [None] * 3
-            if self.gui: self.cells[lap-1][pos-1][0] = self.gui.getCell(lap,pos)
-        self.cells[lap-1][pos-1][1] = car
-        self.cells[lap-1][pos-1][2] = lead
-        if self.gui:
-            self.cells[lap-1][pos-1][0].set(self.cars[car])
-
-    def car(self, car_id, **args):
-        if car_id not in self.cars and len(args) == 0:
+    def car(self, car_id, car_no='??', create=False):
+        if car_id not in self.cars and not create:
             return None
         if car_id not in self.cars:
-            self.cars[car_id] = { 'no' : '??', 'laps' : 0 }
-        for k in args:
-            self.cars[car_id][k] = args[k]
+            self.cars[car_id] = chartcar(self, car_id, car_no)
         return self.cars[car_id]
 
     def num_laps(self):
@@ -61,8 +81,38 @@ class chartdata:
     def lookup(self, lap, pos):
         if lap > len(self.cells): return None
         if pos > len(self.cells[lap-1]): return None
+        return self.cells[lap-1][pos-1]
+
+    def add(self, car_id, lap=None, pos=None, lead=None):
+        car = self.car(car_id, car_no=car_id, create=True)
+
+        # Determine lap and make sure we have enough columns
+        if lap == None:
+            lap = car.laps() + 1
+        if lap > len(self.cells):
+            self.cells.extend([[] for i in range(lap - len(self.cells))])
+        if lap > car.laps():
+            car.laps(lap)
+
+        # Determine lead lap
+        if lead == None:
+            lead = len(self.cells)
+            if lead < lap: lead = lap
+
+        # Determine position and make sure we have enough cells
+        if pos == None:
+            pos = self.max_pos(lap) + 1
+        if pos > self.maxpos:
+            self.maxpos = pos
+        if pos > self.max_pos(lap):
+            self.cells[lap-1].extend([None] * (pos - self.max_pos(lap)))
+        if self.cells[lap-1][pos-1] == None:
+            self.cells[lap-1][pos-1] = chartdatacell(self, lap, pos, gui)
+
+        # Update the cell
         cell = self.cells[lap-1][pos-1]
-        return (self.cars[cell[1]], cell[2])
+        cell.car(car)
+        cell.lead(lead)
 
 def load_passings(data, path):
     with open(path, 'rb') as pfile:
@@ -75,9 +125,11 @@ def load_passings(data, path):
             lead = int(row['Lead'])
             class_ = row['Class']
             driver = row['Name']
-            car_id = class_ + '_' + car_no + '_' + driver
-            car = data.car(car_id, no=car_no, class_=class_)
-            if lap <= car['laps']: continue
+            car_id = car_no + '_' + class_ + '_' + driver
+            car = data.car(car_id, car_no, create=True)
+            car.car_no(car_no)
+            car.class_(class_)
+            if lap <= car.laps(): continue
             data.add(car_id, lap=lap, lead=lead)
 
 def save_ps(data, path):
@@ -89,13 +141,15 @@ def save_ps(data, path):
     with open(tpath, 'r') as template, open(path, 'w') as output:
         for line in template:
             if line.strip() == '%%Insert-Chart-Here':
-                mode = "Plain"
                 laps = data.num_laps()
                 output.write("%d %d ChartFrame\n" % (laps, data.max_pos()))
-                output.write("ChartFont\n")
+                output.write("ChartModePlain\n")
+                mode = "Plain"
                 for lap in range(1, 1+laps):
                     for pos in range(1, 1+data.max_pos(lap)):
-                        (car, lead) = data.lookup(lap, pos)
+                        cell = data.lookup(lap, pos)
+                        lead = cell.lead()
+
                         if lead == laps: newmode = "Final"
                         elif lead % 5:   newmode = "Plain"
                         elif lead % 10:  newmode = "Odd"
@@ -104,7 +158,7 @@ def save_ps(data, path):
                             output.write("ChartMode%s\n" % newmode)
                             mode = newmode
                         output.write("%d %d (%s) ChartCell\n" %
-                                (lap, pos, car['no']))
+                                (lap, pos, cell.car().car_no()))
             else:
                 output.write(line)
 
