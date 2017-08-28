@@ -59,12 +59,12 @@ class chartdatacell:
             other_cell = self.parent.lookup(self.lap, self.pos - 1)
             if other_cell:
                 other_down = other_cell.laps_down()
-                if other_down: self.bar_above = (down != other_down)
+                self.bar_above = down and other_down == 0
         if self.lap > 1:
             other_cell = self.parent.lookup(self.lap - 1, self.pos)
             if other_cell:
                 other_down = other_cell.laps_down()
-                if other_down: self.bar_left = (down != other_down)
+                self.bar_left = down and other_down == 0
         self.update_gui()
 
     def car(self, val=None):
