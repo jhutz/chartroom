@@ -52,6 +52,29 @@
   moveto show
 } def
 
+/ChartBarAbove { % lap pos
+  gsave
+    0 setgray 0.1 setlinewidth
+    1 sub chart_row frame_off sub  % lap Y
+    dup 3 -1 roll                  % Y Y lap
+    chart_col frame_off add        % Y Y X0
+    dup cell_width add             % Y Y X0 X1
+    4 1 roll exch                  % X1 Y X0 Y
+    moveto lineto stroke
+  grestore
+} def
+
+/ChartBarLeft  { % lap pos
+  gsave
+    0 setgray 0.1 setlinewidth
+    chart_row frame_off sub        % lap Y1
+    dup row_height add 3 -1 roll   % Y1 Y0 lap
+    chart_col frame_off add        % Y1 Y0 X
+    dup 3 1 roll                   % Y1 X Y0 X
+    exch moveto exch lineto stroke
+  grestore
+} def
+
 /ChartFrame { % laps maxpos
   2 copy
   chart_row       frame_off sub 1 chart_col frame_off add exch moveto

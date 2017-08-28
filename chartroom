@@ -44,6 +44,7 @@ def save_ps(data, path):
                     for pos in range(1, 1+data.max_pos(lap)):
                         cell = data.lookup(lap, pos)
                         lead = cell.lead()
+                        bars = cell.bars()
 
                         if lead == laps: newmode = "Final"
                         elif lead % 5:   newmode = "Plain"
@@ -54,6 +55,10 @@ def save_ps(data, path):
                             mode = newmode
                         output.write("%d %d (%s) ChartCell\n" %
                                 (lap, pos, cell.car().car_no()))
+                        if bars[0]:
+                            output.write("%d %d ChartBarAbove\n" % (lap, pos))
+                        if bars[1]:
+                            output.write("%d %d ChartBarLeft\n" % (lap, pos))
             else:
                 output.write(line)
 
