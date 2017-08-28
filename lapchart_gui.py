@@ -5,17 +5,25 @@ cell_height=20
 
 FILL_PARENT = tk.N+tk.S+tk.E+tk.W
 
+def visible(cond): return tk.NORMAL if cond else tk.HIDDEN
+
 class LapChartGUICell:
     def __init__(self, canvas, lap, pos):
         self.data = None
-        self.bar_above = None
-        self.bar_left = None
-
         self.canvas = canvas
 
         x = (lap - 1) * cell_width
         y = (pos - 1) * cell_height
+        x0 = x - (cell_width/2)
+        y0 = y - (cell_height/2)
+        x1 = x + (cell_width/2)
+        y1 = y + (cell_height/2)
+
+        self.fill = canvas.create_rectangle(x0, y0, x1, y1, state=tk.HIDDEN,
+                width=0, fill="yellow")
         self.text = canvas.create_text(x, y, text='', justify=tk.CENTER)
+        self.bar_above = canvas.create_line(x0, y0, x1, y0, state=tk.HIDDEN)
+        self.bar_left  = canvas.create_line(x0, y0, x0, y1, state=tk.HIDDEN)
 
     def set_data(self, data):
         self.data  = data
@@ -26,20 +34,34 @@ class LapChartGUICell:
             bars = self.data.bars()
         else:
             bars = (False, False)
-        if self.bar_above is not None:
-            self.canvas.itemconfigure(self.bar_above,
-                    state = tk.NORMAL if bars[0] else tk.DISABLED)
-        if self.bar_left is not None:
-            self.canvas.itemconfigure(self.bar_left,
-                    state = tk.NORMAL if bars[1] else tk.DISABLED)
+        self.canvas.itemconfigure(self.bar_above, state = visible(bars[0]))
+        self.canvas.itemconfigure(self.bar_left,  state = visible(bars[1]))
+        #self.canvas.itemconfigure(self.fill,      state = visible(bars[0] or bars[1]))
+
+    def update_fill(self):
+        #if self.data:
+        #    down = self.data.laps_down()
+        #else:
+        #    down = None
+        #if not down:    self.canvas.itemconfigure(self.fill, state=tk.HIDDEN)
+        #elif down == 1: self.canvas.itemconfigure(self.fill, state=tk.NORMAL, fill="#8cf")
+        #elif down == 2: self.canvas.itemconfigure(self.fill, state=tk.NORMAL, fill="#cfc")
+        #elif down == 3: self.canvas.itemconfigure(self.fill, state=tk.NORMAL, fill="#ffc")
+        #else:           self.canvas.itemconfigure(self.fill, state=tk.NORMAL, fill="#fcc")
+        pass
 
     def update(self):
         if self.data and self.data.car():
             text = self.data.car().car_no()
+            #down = self.data.laps_down()
+            #if down is not None: text = text + "\n" + str(down)
+            #bars = self.data.bars()
+            #text = text + "\n" + ("T" if bars[0] else "F") + ("T" if bars[1] else "F")
         else:
             text = ''
         self.canvas.itemconfigure(self.text, text=text)
         self.update_bars()
+        self.update_fill()
 
 class LapChartFrame(tk.Frame):
     def __init__(self, master):
