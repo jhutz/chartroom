@@ -17,23 +17,7 @@ class LapChartGUICell:
         self.car_lbl = tk.Label(self.frame, anchor=tk.CENTER,
                 bg="white", textvariable=self.car_v)
         #if lap == pos: self.car_lbl.config(bg="yellow")
-        self.car_lbl.bind('<Configure>', self._configure)
         self.car_lbl.grid(column=lap-1, row=pos-1, sticky=FILL_PARENT)
-
-    def _configure(self, event):
-        x0 = self.car_lbl.winfo_x()
-        y0 = self.car_lbl.winfo_y()
-        x1 = x0 + self.car_lbl.winfo_width()
-        y1 = y0 + self.car_lbl.winfo_height()
-        if self.bar_above is not None:
-            self.canvas.coords(self.bar_above, x0, y0, x1, y0)
-        else:
-            self.bar_above = self.canvas.create_line(x0, y0, x1, y0)
-        if self.bar_left is not None:
-            self.canvas.coords(self.bar_left, x0, y0, x0, y1)
-        else:
-            self.bar_left = self.canvas.create_line(x0, y0, x0, y1)
-        self.update_bars()
 
     def set_data(self, data):
         self.data  = data
