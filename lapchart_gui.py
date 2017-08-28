@@ -1,7 +1,7 @@
 import Tkinter as tk
 
-lap_col_size=35
-pos_row_size=20
+cell_width=34
+cell_height=20
 
 FILL_PARENT = tk.N+tk.S+tk.E+tk.W
 
@@ -50,28 +50,23 @@ class LapChartGUICell:
 
 class LapChartFrame(tk.Frame):
     def __init__(self, master):
+        self.n_laps = 0
+        self.n_pos = 0
         self.cells = []
-        self.lap_lbls = []
-        self.pos_lbls = []
 
         # overall frame and scrollbars
         tk.Frame.__init__(self, master)
         self.lc_vscrollbar = tk.Scrollbar(self, orient=tk.VERTICAL, command = self.yview)
         self.lc_hscrollbar = tk.Scrollbar(self, orient=tk.HORIZONTAL, command = self.xview)
 
-        # canvas and frame for lap labels (across top)
-        self.lap_canvas = tk.Canvas(self, xscrollcommand=self.lc_hscrollbar.set)
-        self.lap_frame  = tk.Frame(self.lap_canvas)
-        self.lap_objid = self.lap_canvas.create_window(0, 0, window=self.lap_frame, anchor=tk.NW)
-        self.lap_frame.bind('<Configure>', self._configure_lap_frame)
-        self.lap_canvas.bind('<Configure>', self._configure_lap_canvas)
-
-        # canvas and frame for position labels (down side)
-        self.pos_canvas = tk.Canvas(self, yscrollcommand=self.lc_vscrollbar.set)
-        self.pos_frame = tk.Frame(self.pos_canvas)
-        self.pos_objid = self.pos_canvas.create_window(0, 0, window=self.pos_frame, anchor=tk.NW)
-        self.pos_frame.bind('<Configure>', self._configure_pos_frame)
-        self.pos_canvas.bind('<Configure>', self._configure_pos_canvas)
+        # canvases for lap and position labels
+        self.lap_canvas = tk.Canvas(self, height=cell_height, xscrollcommand=self.lc_hscrollbar.set)
+        self.pos_canvas = tk.Canvas(self, width=cell_width, yscrollcommand=self.lc_vscrollbar.set)
+        self.update_scrollregions()
+        self.lap_canvas.xview_moveto(0)
+        self.lap_canvas.yview_moveto(0)
+        self.pos_canvas.xview_moveto(0)
+        self.pos_canvas.yview_moveto(0)
 
         # canvas and frame for lap chart body
         self.lc_canvas = tk.Canvas(self, bg='white',
@@ -101,21 +96,14 @@ class LapChartFrame(tk.Frame):
         self.lc_canvas.yview(*args)
         self.pos_canvas.yview(*args)
 
-    def _configure_lap_frame(self, event):
-        # adjust lap labels canves for frame content change
-        w = self.lap_frame.winfo_reqwidth()
-        h = self.lap_frame.winfo_reqheight()
-        self.lap_canvas.config(scrollregion="0 0 %s %s" % (w,h))
-        if h != self.lap_canvas.winfo_height():
-            self.lap_canvas.config(height=h)
-
-    def _configure_pos_frame(self, event):
-        # adjust position labels canves for frame content change
-        w = self.pos_frame.winfo_reqwidth()
-        h = self.pos_frame.winfo_reqheight()
-        self.pos_canvas.config(scrollregion="0 0 %s %s" % (w,h))
-        if w != self.pos_canvas.winfo_width():
-            self.pos_canvas.config(width=w)
+    def update_scrollregions(self):
+        x0 = - (cell_width / 2)
+        y0 = - (cell_height / 2)
+        width = cell_width * self.n_laps
+        height = cell_height * self.n_pos
+        self.lap_canvas.config(scrollregion=(x0, y0, width, cell_height))
+        self.pos_canvas.config(scrollregion=(x0, y0, cell_width, height))
+        #self.lc_canvas.config(scrollregion=(x0, y0, width, height))
 
     def _configure_lc_frame(self, event):
         # adjust body frame for window resize
@@ -123,39 +111,21 @@ class LapChartFrame(tk.Frame):
         h = self.lc_frame.winfo_reqheight()
         self.lc_canvas.config(scrollregion="0 0 %s %s" % (w,h))
 
-    def _configure_lap_canvas(self, event):
-        # adjust lap labels frame for window resize
-        h = self.lap_frame.winfo_reqheight()
-        ch = self.lap_canvas.winfo_height()
-        if h != ch:
-            self.lap_canvas.itemconfigure(self.lap_objid, height=ch)
-
-    def _configure_pos_canvas(self, event):
-        # adjust position labels frame for window resize
-        w = self.pos_frame.winfo_reqwidth()
-        cw = self.pos_canvas.winfo_width()
-        if w != cw:
-            self.pos_canvas.itemconfigure(self.pos_objid, width=cw)
-
     def _configure_lc_canvas(self, event): pass
 
     def getCell(self, lap, pos):
-        while lap > len(self.lap_lbls):
-            i = len(self.lap_lbls)
-            self.lc_frame.columnconfigure(i, minsize=lap_col_size)
-            self.lap_frame.columnconfigure(i, minsize=lap_col_size)
-            lbl = tk.Label(self.lap_frame, anchor=tk.CENTER, text=i+1)
-            lbl.grid(row=0, column=i, sticky=FILL_PARENT)
-            self.lap_lbls.append(lbl)
-            cell = LapChartGUICell(self.lc_canvas, self.lc_frame, i+1, 1)
+        update = lap > self.n_laps or pos > self.n_pos
+        while lap > self.n_laps:
+            self.lap_canvas.create_text(self.n_laps * cell_width, 0, text=self.n_laps+1)
+            self.lc_frame.columnconfigure(self.n_laps, minsize=cell_width)
+            cell = LapChartGUICell(self.lc_canvas, self.lc_frame, self.n_laps+1, 1)
             self.cells.append([cell])
-        while pos > len(self.pos_lbls):
-            i = len(self.pos_lbls)
-            self.lc_frame.rowconfigure(i, minsize=pos_row_size)
-            self.pos_frame.rowconfigure(i, minsize=pos_row_size)
-            lbl = tk.Label(self.pos_frame, anchor=tk.E, text=i+1)
-            lbl.grid(row=i, column=0, sticky=tk.E)
-            self.pos_lbls.append(lbl)
+            self.n_laps = self.n_laps + 1
+        while pos > self.n_pos:
+            self.pos_canvas.create_text(0, self.n_pos * cell_height, text=self.n_pos+1)
+            self.lc_frame.rowconfigure(self.n_pos, minsize=cell_height)
+            self.n_pos = self.n_pos + 1
+        if update: self.update_scrollregions()
         while pos > len(self.cells[lap-1]):
             cell = LapChartGUICell(self.lc_canvas, self.lc_frame,
                     lap, len(self.cells[lap-1])+1)
