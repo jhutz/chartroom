@@ -52,7 +52,7 @@ class chartdatacell:
         self.bar_above = False
         self.bar_left = False
         if self._lead is None:
-            if self.gui: self.gui.update()
+            self.update_gui()
             return
         down = self.laps_down()
         if self.pos > 1:
@@ -65,12 +65,12 @@ class chartdatacell:
             if other_cell:
                 other_down = other_cell.laps_down()
                 if other_down: self.bar_left = (down != other_down)
-        if self.gui: self.gui.update()
+        self.update_gui()
 
     def car(self, val=None):
         if val is not None:
             self._car = val
-            if self.gui: self.gui.update()
+            self.update_gui()
         return self._car
 
     def lead(self, val=None):
@@ -81,7 +81,6 @@ class chartdatacell:
             if other_cell: other_cell.update_bars()
             other_cell = self.parent.lookup(self.lap + 1, self.pos)
             if other_cell: other_cell.update_bars()
-            if self.gui: self.gui.update()
         return self._lead
 
     def laps_down(self):
