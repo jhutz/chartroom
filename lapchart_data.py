@@ -28,18 +28,25 @@ class chartdatacell:
         self.parent = parent
         self.lap = lap
         self.pos = pos
-        self._car = None
-        self._lead = None
-        self.bar_above = False
-        self.bar_left = False
+        self._reset()
         if gui:
             self.gui = gui.getCell(lap, pos)
             self.gui.set_data(self)
         else:
             self.gui = None
 
+    def _reset(self):
+        self._car = None
+        self._lead = None
+        self.bar_above = False
+        self.bar_left = False
+
     def update_gui(self):
         if self.gui: self.gui.update()
+
+    def reset(self):
+        self._reset()
+        self.update_gui()
 
     def update_bars(self):
         self.bar_above = False
@@ -58,11 +65,6 @@ class chartdatacell:
             if other_cell:
                 other_down = other_cell.laps_down()
                 if other_down: self.bar_left = (down != other_down)
-        if self.gui: self.gui.update()
-
-    def reset(self):
-        self._car = None
-        self._lead = None
         if self.gui: self.gui.update()
 
     def car(self, val=None):
