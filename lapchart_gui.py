@@ -1,4 +1,7 @@
 import Tkinter as tk
+from lapchart_data import chartdata
+
+LC_VERSION = '0.1'
 
 cell_width=34
 cell_height=20
@@ -135,6 +138,7 @@ class LapChartFrame(tk.Frame):
 class LapChartGUI(tk.Frame):
     def __init__(self, master=None):
         tk.Frame.__init__(self, master)
+        self.master.title('ChartRoom v%s' % LC_VERSION)
         self.winfo_toplevel().rowconfigure(0, weight=1)
         self.winfo_toplevel().columnconfigure(0, weight=1)
         self.grid(sticky=FILL_PARENT)
@@ -152,6 +156,7 @@ class LapChartGUI(tk.Frame):
         menu.add_command(label="Quit", command=self.quit,
                 accelerator="Ctrl+Q")
         self.bind_all('<Control-KeyPress-q>', self.quitEvent)
+        self.data = chartdata(self)
 
     def getCell(self, lap, pos):
         return self.chart_frame.getCell(lap, pos)
