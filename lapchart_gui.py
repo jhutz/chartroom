@@ -100,6 +100,11 @@ class LapChartFrame(tk.Frame):
         self.lc_vscrollbar.grid (row=1, column=2, sticky=tk.NS)
         self.lc_hscrollbar.grid (row=2, column=1, sticky=tk.EW)
 
+        # bind mouse controls
+        parent.bind('<Button-4>', self.scroll_event)
+        parent.bind('<Button-5>', self.scroll_event)
+        parent.bind('<MouseWheel>', self.scroll_event)
+
     def xview(self, *args):
         # horizontal scroll of body and lap labels
         self.lc_canvas.xview(*args)
@@ -109,6 +114,41 @@ class LapChartFrame(tk.Frame):
         # vertical scroll of body and position labels
         self.lc_canvas.yview(*args)
         self.pos_canvas.yview(*args)
+
+    def scroll_up   (self, count=1): self.yview(tk.SCROLL, -count, tk.UNITS)
+    def scroll_down (self, count=1): self.yview(tk.SCROLL,  count, tk.UNITS)
+    def scroll_left (self, count=1): self.xview(tk.SCROLL, -count, tk.UNITS)
+    def scroll_right(self, count=1): self.xview(tk.SCROLL,  count, tk.UNITS)
+    def scroll_event(self, event):
+        if event.type == 4 or event.type == '4':    # Button
+            count = 1
+            if event.num == 4:   reverse = True
+            elif event.num == 5: reverse = False
+            else: return
+        elif event.type == 38 or event.type == '38': # MouseWheel
+            if event.delta < 0:
+                count = -event.delta
+                reverse = True
+            else:
+                count = event.delta
+                reverse = False
+            if not count % 120: count = count // 120  # Kludge for Windows
+        else:
+            return
+        if not count: return
+        mods = event.state & 0x8d
+        if mods == 0:   # no mods - vertical scroll
+            if reverse: self.scroll_up(count)
+            else:       self.scroll_down(count)
+        elif mods == 1: # shift - horizontal scroll
+            if reverse: self.scroll_left(count)
+            else:       self.scroll_right(count)
+        elif mods == 4: # control - zoom
+            if reverse: self.zoom_in(count)
+            else:       self.zoom_out(-count)
+
+    def zoom(self, count):
+        pass
 
     def update_scrollregions(self):
         x0 = - (cell_width / 2)
@@ -139,6 +179,7 @@ class LapChartWindow(tk.Toplevel):
     def __init__(self, data=None):
         tk.Toplevel.__init__(self)
         self.title('ChartRoom v%s' % LC_VERSION)
+        self.protocol('WM_DELETE_WINDOW', self.closeWindow)
 
         self.columnconfigure(0, weight=1)
         self.rowconfigure(0, weight=1)
