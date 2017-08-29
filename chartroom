@@ -6,24 +6,7 @@ import os
 
 from lapchart_data import chartdata
 from lapchart_gui import LapChartGUI
-
-def load_passings(data, path):
-    with open(path, 'rb') as pfile:
-        reader = csv.DictReader(pfile, delimiter='\t', quoting=csv.QUOTE_NONE)
-        for row in reader:
-            car_no = row['No.']
-            if car_no == '' or car_no == '??': continue
-            lap = int(row['Laps'].strip('P '))
-            if lap <= 0: continue
-            lead = int(row['Lead'])
-            class_ = row['Class']
-            driver = row['Name']
-            car_id = car_no + '_' + class_ + '_' + driver
-            car = data.car(car_id, car_no, create=True)
-            car.car_no(car_no)
-            car.class_(class_)
-            if lap <= car.laps(): continue
-            data.add(car_id, lap=lap, lead=lead)
+from data_file_io import load_file
 
 def save_ps(data, path):
     if hasattr(sys, "frozen"):
@@ -61,14 +44,11 @@ def save_ps(data, path):
                 output.write(line)
 
 if __name__ == '__main__':
-    data = None
-    if len(sys.argv) > 1:
+    if len(sys.argv) == 4 and sys.argv[1] == '-P':
         data = chartdata()
-        load_passings(data, sys.argv[1])
-
-    if len(sys.argv) > 2:
-        save_ps(data, sys.argv[2])
+        load_file(data, sys.argv[2])
+        save_ps(data, sys.argv[3])
         sys.exit(0)
 
-    gui = LapChartGUI(data=data)
+    gui = LapChartGUI(files=sys.argv[1:])
     gui.mainloop()

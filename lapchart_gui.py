@@ -1,5 +1,6 @@
 import Tkinter as tk
 from lapchart_data import chartdata
+from data_file_io import load_file, FileFormatException
 
 LC_VERSION = '0.1'
 
@@ -212,7 +213,7 @@ class LapChartWindow(tk.Toplevel):
 
 
 class LapChartGUI(tk.Tk):
-    def __init__(self, data=None):
+    def __init__(self, files=[], data=None):
         tk.Tk.__init__(self)
         self.overrideredirect(1)
         self.withdraw()
@@ -222,7 +223,14 @@ class LapChartGUI(tk.Tk):
 
         if data:
             self.newWindow(data=data)
-        else:
+
+        for file in files:
+            try:
+                self.openFile(file)
+            except (FileFormatException, IOError) as e:
+                warn("%s: %s" % file, e)
+
+        if not data and not files:
             first = self.newWindow()
             first.data.add('10') # 1, 1
             first.data.add('2',) # 1, 2
@@ -242,9 +250,13 @@ class LapChartGUI(tk.Tk):
             first.data.add('1', 14, 1)
 
     def newWindow(self, event=None, data=None): return LapChartWindow(data)
+    def closeWindow(self, event): event.widget.winfo_toplevel().closeWindow()
     def quitEvent(self, event): self.quit()
 
-    def closeWindow(self, event): event.widget.winfo_toplevel().closeWindow()
+    def openFile(self, file):
+        newdata = chartdata()
+        load_file(newdata, file)
+        self.newWindow(data=newdata)
 
     def _deref(self):
         if not self.winfo_children(): self.quit()
