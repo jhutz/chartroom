@@ -1,7 +1,9 @@
 import Tkinter as tk
 import tkFileDialog
+import os.path
 from lapchart_data import chartdata
 from data_file_io import load_file, FileFormatException
+from printing import save_ps
 
 CR_VERSION = '0.1'
 
@@ -180,6 +182,7 @@ class LapChartFrame(tk.Frame):
 class LapChartWindow(tk.Toplevel):
     def __init__(self, data=None, filename=None):
         tk.Toplevel.__init__(self)
+        self.filename = filename
         if filename:
             self.title("%s - ChartRoom v%s" % (filename, CR_VERSION))
         else:
@@ -200,6 +203,9 @@ class LapChartWindow(tk.Toplevel):
                 accelerator="Ctrl+N")
         menu.add_command(label="Open...", command=self.master.openFileDialog,
                 accelerator="Ctrl+O")
+        menu.add_command(label="Print to file...",
+                command=self.printFileDialog,
+                accelerator="Ctrl+P")
         menu.add_command(label="Close", command=self.closeWindow,
                 accelerator="Ctrl+W")
         menu.add_command(label="Quit", command=self.master.quit,
@@ -213,6 +219,23 @@ class LapChartWindow(tk.Toplevel):
     def getCell(self, lap, pos):
         return self.chart_frame.getCell(lap, pos)
 
+    def printFileDialog(self):
+        if self.filename is not None:
+            defdir  = os.path.dirname(self.filename)
+            defpath = os.path.splitext(self.filename)[0] + '.ps'
+            path = tkFileDialog.asksaveasfilename(
+                    parent = self, title = 'Print to File',
+                    initialdir = defdir, initialfile = defpath,
+                    defaultextension='.ps',
+                    filetypes=[("PostScript", "*.ps")])
+        else:
+            path = tkFileDialog.asksaveasfilename(
+                    parent = self, title = 'Print to File',
+                    defaultextension='.ps',
+                    filetypes=[("PostScript", "*.ps")])
+        if path:
+            save_ps(self.data, path)
+
     def closeWindow(self):
         self.destroy()
         self.master._deref()
@@ -225,6 +248,7 @@ class LapChartGUI(tk.Tk):
         self.withdraw()
         self.bind_all('<Control-KeyPress-n>', self.newWindow)
         self.bind_all('<Control-KeyPress-o>', self.openFileDialog)
+        self.bind_all('<Control-KeyPress-p>', self.printFileDialog)
         self.bind_all('<Control-KeyPress-w>', self.closeWindow)
         self.bind_all('<Control-KeyPress-q>', self.quitEvent)
 
@@ -271,8 +295,14 @@ class LapChartGUI(tk.Tk):
             ])
         if path: self.openFile(path)
 
-    def closeWindow(self, event): event.widget.winfo_toplevel().closeWindow()
-    def quitEvent(self, event): self.quit()
+    def printFileDialog(self, event):
+        event.widget.winfo_toplevel().printFileDialog()
+
+    def closeWindow(self, event):
+        event.widget.winfo_toplevel().closeWindow()
+
+    def quitEvent(self, event):
+        self.quit()
 
     def _deref(self):
         if not self.winfo_children(): self.quit()
