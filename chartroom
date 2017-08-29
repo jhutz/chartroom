@@ -61,15 +61,14 @@ def save_ps(data, path):
                 output.write(line)
 
 if __name__ == '__main__':
-    if len(sys.argv) > 2:
+    data = None
+    if len(sys.argv) > 1:
         data = chartdata()
         load_passings(data, sys.argv[1])
+
+    if len(sys.argv) > 2:
         save_ps(data, sys.argv[2])
         sys.exit(0)
 
-    gui = LapChartGUI()
-
-    #if len(sys.argv) > 1:
-    #    load_passings(gui.data, sys.argv[1])
-
+    gui = LapChartGUI(data=data)
     gui.mainloop()

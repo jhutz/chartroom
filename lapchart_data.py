@@ -29,11 +29,12 @@ class chartdatacell:
         self.lap = lap
         self.pos = pos
         self._reset()
-        if gui:
-            self.gui = gui.getCell(lap, pos)
-            self.gui.set_data(self)
-        else:
-            self.gui = None
+        self.gui = None
+        if gui: self.attach_gui(gui)
+
+    def attach_gui(self, gui):
+        self.gui = gui.getCell(self.lap, self.pos)
+        self.gui.set_data(self)
 
     def _reset(self):
         self._car = None
@@ -156,3 +157,9 @@ class chartdata:
         for col in self.cells:
             for cell in col:
                 if cell.car is car: cell.update_gui()
+
+    def attach_gui(self, gui):
+        self.gui = gui
+        for col in self.cells:
+            for cell in col:
+                cell.attach_gui(gui)

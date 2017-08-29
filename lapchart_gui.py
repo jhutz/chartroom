@@ -136,7 +136,7 @@ class LapChartFrame(tk.Frame):
 
         
 class LapChartWindow(tk.Toplevel):
-    def __init__(self):
+    def __init__(self, data=None):
         tk.Toplevel.__init__(self)
         self.title('ChartRoom v%s' % LC_VERSION)
 
@@ -156,7 +156,11 @@ class LapChartWindow(tk.Toplevel):
                 accelerator="Ctrl+W")
         menu.add_command(label="Quit", command=self.master.quit,
                 accelerator="Ctrl+Q")
-        self.data = chartdata(self)
+        if data:
+            self.data = data
+            data.attach_gui(self)
+        else:
+            self.data = chartdata(self)
 
     def getCell(self, lap, pos):
         return self.chart_frame.getCell(lap, pos)
@@ -167,32 +171,36 @@ class LapChartWindow(tk.Toplevel):
 
 
 class LapChartGUI(tk.Tk):
-    def __init__(self):
+    def __init__(self, data=None):
         tk.Tk.__init__(self)
         self.overrideredirect(1)
         self.withdraw()
         self.bind_all('<Control-KeyPress-n>', self.newWindow)
         self.bind_all('<Control-KeyPress-w>', self.closeWindow)
         self.bind_all('<Control-KeyPress-q>', self.quitEvent)
-        first = self.newWindow()
-        first.data.add('10') # 1, 1
-        first.data.add('2',) # 1, 2
-        first.data.add('08') # 1, 3
-        first.data.add('55') # 1, 4
-        first.data.add('42') # 1, 5
-        first.data.add('10') # 2, 1
-        first.data.add('08') # 2, 2
-        first.data.add('2',) # 2, 3
-        first.data.add('55') # 2, 4
-        first.data.add('08') # 3, 1
-        first.data.add('42') # 2, 5
-        first.data.add('10') # 3, 2
-        first.data.add('2',) # 3, 3
-        first.data.add('55') # 3, 4
-        first.data.add('15', 1,15)
-        first.data.add('1', 14, 1)
 
-    def newWindow(self, event=None): return LapChartWindow()
+        if data:
+            self.newWindow(data=data)
+        else:
+            first = self.newWindow()
+            first.data.add('10') # 1, 1
+            first.data.add('2',) # 1, 2
+            first.data.add('08') # 1, 3
+            first.data.add('55') # 1, 4
+            first.data.add('42') # 1, 5
+            first.data.add('10') # 2, 1
+            first.data.add('08') # 2, 2
+            first.data.add('2',) # 2, 3
+            first.data.add('55') # 2, 4
+            first.data.add('08') # 3, 1
+            first.data.add('42') # 2, 5
+            first.data.add('10') # 3, 2
+            first.data.add('2',) # 3, 3
+            first.data.add('55') # 3, 4
+            first.data.add('15', 1,15)
+            first.data.add('1', 14, 1)
+
+    def newWindow(self, event=None, data=None): return LapChartWindow(data)
     def quitEvent(self, event): self.quit()
 
     def closeWindow(self, event): event.widget.winfo_toplevel().closeWindow()
