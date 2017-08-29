@@ -1,8 +1,9 @@
 import Tkinter as tk
+import tkFileDialog
 from lapchart_data import chartdata
 from data_file_io import load_file, FileFormatException
 
-LC_VERSION = '0.1'
+CR_VERSION = '0.1'
 
 cell_width=34
 cell_height=20
@@ -177,9 +178,12 @@ class LapChartFrame(tk.Frame):
 
         
 class LapChartWindow(tk.Toplevel):
-    def __init__(self, data=None):
+    def __init__(self, data=None, filename=None):
         tk.Toplevel.__init__(self)
-        self.title('ChartRoom v%s' % LC_VERSION)
+        if filename:
+            self.title("%s - ChartRoom v%s" % (filename, CR_VERSION))
+        else:
+            self.title('ChartRoom v%s' % CR_VERSION)
         self.protocol('WM_DELETE_WINDOW', self.closeWindow)
 
         self.columnconfigure(0, weight=1)
@@ -194,6 +198,8 @@ class LapChartWindow(tk.Toplevel):
         self.menubar.add_cascade(label="File", menu=menu)
         menu.add_command(label="New", command=self.master.newWindow,
                 accelerator="Ctrl+N")
+        menu.add_command(label="Open...", command=self.master.openFileDialog,
+                accelerator="Ctrl+O")
         menu.add_command(label="Close", command=self.closeWindow,
                 accelerator="Ctrl+W")
         menu.add_command(label="Quit", command=self.master.quit,
@@ -218,6 +224,7 @@ class LapChartGUI(tk.Tk):
         self.overrideredirect(1)
         self.withdraw()
         self.bind_all('<Control-KeyPress-n>', self.newWindow)
+        self.bind_all('<Control-KeyPress-o>', self.openFileDialog)
         self.bind_all('<Control-KeyPress-w>', self.closeWindow)
         self.bind_all('<Control-KeyPress-q>', self.quitEvent)
 
@@ -249,14 +256,23 @@ class LapChartGUI(tk.Tk):
             first.data.add('15', 1,15)
             first.data.add('1', 14, 1)
 
-    def newWindow(self, event=None, data=None): return LapChartWindow(data)
-    def closeWindow(self, event): event.widget.winfo_toplevel().closeWindow()
-    def quitEvent(self, event): self.quit()
+    def newWindow(self, event=None, data=None, filename=None):
+        return LapChartWindow(data, filename)
 
     def openFile(self, file):
         newdata = chartdata()
         load_file(newdata, file)
-        self.newWindow(data=newdata)
+        self.newWindow(data=newdata, filename=file)
+
+    def openFileDialog(self, event=None):
+        path = tkFileDialog.askopenfilename( filetypes=[
+            ("Orbits Passings CSV", "*.csv"),
+            ("Orbits Passings (tab-separated)", "*.txt"),
+            ])
+        if path: self.openFile(path)
+
+    def closeWindow(self, event): event.widget.winfo_toplevel().closeWindow()
+    def quitEvent(self, event): self.quit()
 
     def _deref(self):
         if not self.winfo_children(): self.quit()
