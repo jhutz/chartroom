@@ -69,24 +69,7 @@ if __name__ == '__main__':
 
     gui = LapChartGUI()
 
-    if len(sys.argv) > 1:
-        load_passings(gui.data, sys.argv[1])
-    else:
-        gui.data.add('10') # 1, 1
-        gui.data.add('2',) # 1, 2
-        gui.data.add('08') # 1, 3
-        gui.data.add('55') # 1, 4
-        gui.data.add('42') # 1, 5
-        gui.data.add('10') # 2, 1
-        gui.data.add('08') # 2, 2
-        gui.data.add('2',) # 2, 3
-        gui.data.add('55') # 2, 4
-        gui.data.add('08') # 3, 1
-        gui.data.add('42') # 2, 5
-        gui.data.add('10') # 3, 2
-        gui.data.add('2',) # 3, 3
-        gui.data.add('55') # 3, 4
-        gui.data.add('15', 1,15)
-        gui.data.add('1', 14, 1)
+    #if len(sys.argv) > 1:
+    #    load_passings(gui.data, sys.argv[1])
 
     gui.mainloop()
