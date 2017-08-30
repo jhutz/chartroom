@@ -1,7 +1,7 @@
 class chartcar:
     def __init__(self, parent, car_id, car_no='??'):
         self.parent = parent
-        self.id = id
+        self.id = car_id
         self._car_no = car_no
         self._laps = 0
         self._class = None
@@ -22,6 +22,17 @@ class chartcar:
             self._class = val
             self.parent.refresh_gui_for_car(self)
         return self._class
+
+    def encode(self):
+        return {
+            'car_no' : self._car_no,
+            'class'   : self._class,
+        }
+
+    def decode(self, code):
+        if 'car_no' in code: self._car_no = code['car_no']
+        if 'class'  in code: self._class  = code['class']
+        return self
 
 class chartdatacell:
     def __init__(self, parent, lap, pos, gui=None):
@@ -71,6 +82,8 @@ class chartdatacell:
     def car(self, val=None):
         if val is not None:
             self._car = val
+            if self.lap > self._car.laps():
+                self._car.laps(self.lap)
             self.update_gui()
         return self._car
 
@@ -91,13 +104,23 @@ class chartdatacell:
     def bars(self):
         return (self.bar_above, self.bar_left)
 
+    def encode(self):
+        return (self._car.id, self._lead)
+
+    def decode(self, code):
+        self._car = self.parent.car(code[0])
+        self._lead = code[1]
+        if self.lap > self._car.laps():
+            self._car.laps(self.lap)
+        return self
+
 
 class chartdata:
     def __init__(self, gui=None):
         self.gui = gui
         self.cars = {}
         self.cells = []
-        self.maxpos = 0
+        self._max_pos = 0
 
     def car(self, car_id, car_no='??', create=False):
         if car_id not in self.cars and not create:
@@ -110,7 +133,7 @@ class chartdata:
         return len(self.cells)
 
     def max_pos(self, lap=None):
-        if lap is None: return self.maxpos
+        if lap is None: return self._max_pos
         if lap > len(self.cells): return None
         return len(self.cells[lap-1])
 
@@ -138,8 +161,8 @@ class chartdata:
         # Determine position and make sure we have enough cells
         if pos is None:
             pos = self.max_pos(lap) + 1
-        if pos > self.maxpos:
-            self.maxpos = pos
+        if pos > self._max_pos:
+            self._max_pos = pos
         if pos > self.max_pos(lap):
             self.cells[lap-1].extend([None] * (pos - self.max_pos(lap)))
         if not self.cells[lap-1][pos-1]:
@@ -163,3 +186,23 @@ class chartdata:
         for col in self.cells:
             for cell in col:
                 cell.attach_gui(gui)
+
+    def encode(self):
+        return {
+            'cars' :  { k : v.encode() for (k,v) in self.cars.iteritems() },
+            'cells' : [
+                [ cell.encode() if cell else None for cell in lap ]
+                for lap in self.cells ],
+        }
+
+    def decode(self, code):
+        self.cars = { k : chartcar(self, k).decode(v)
+                for (k,v) in code['cars'].iteritems() }
+        self.cells = [
+                [ chartdatacell(self, lap, pos).decode(attrs)
+                    if attrs else None
+                    for pos, attrs in enumerate(col, start=1) ]
+                for lap, col in enumerate(code['cells'], start=1) ]
+        self._max_pos = max(len(lap) for lap in self.cells)
+        for cell in [ cell for lap in self.cells for cell in lap if cell ]:
+            cell.update_bars()

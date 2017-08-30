@@ -1,10 +1,20 @@
 import csv
+import json
 from warnings import warn
 
 CR_MAGIC = '#>ChartRoom-'
+CR_VERSION = '0.1'
 
 class FileFormatException(Exception): pass
 class FileFormatWarning(UserWarning): pass
+
+def save_data_file(data, path):
+    with open(path, 'w') as output:
+        output.write("%s%s\n" % (CR_MAGIC, CR_VERSION))
+        json.dump(data.encode(), output, indent=4)
+
+def load_data_file(data, F, filename):
+    data.decode(json.load(F))
 
 def _process_passings(data, reader, filename):
     fieldnames = reader.fieldnames
@@ -41,10 +51,11 @@ def load_passings_csv(data, F, filename):
 def load_file(data, path):
     with open(path, 'rU') as F:
         first = F.readline(1024)
-        F.seek(0)
         if first.startswith(CR_MAGIC):
-            raise FileFormatException, "%s: can't load charts yet" % filename
+            load_data_file(data, F, path)
         elif '\t' in first:
+            F.seek(0)
             load_passings_txt(data, F, path)
         else:
+            F.seek(0)
             load_passings_csv(data, F, path)

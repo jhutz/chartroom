@@ -2,10 +2,10 @@ import Tkinter as tk
 import tkFileDialog
 import os.path
 from lapchart_data import chartdata
-from data_file_io import load_file, FileFormatException
+from data_file_io import CR_VERSION
+from data_file_io import load_file, save_data_file
+from data_file_io import FileFormatException
 from printing import save_ps
-
-CR_VERSION = '0.1'
 
 cell_width=34
 cell_height=20
@@ -183,10 +183,7 @@ class LapChartWindow(tk.Toplevel):
     def __init__(self, data=None, filename=None):
         tk.Toplevel.__init__(self)
         self.filename = filename
-        if filename:
-            self.title("%s - ChartRoom v%s" % (filename, CR_VERSION))
-        else:
-            self.title('ChartRoom v%s' % CR_VERSION)
+        self.update_title()
         self.protocol('WM_DELETE_WINDOW', self.closeWindow)
 
         self.columnconfigure(0, weight=1)
@@ -203,6 +200,9 @@ class LapChartWindow(tk.Toplevel):
                 accelerator="Ctrl+N")
         menu.add_command(label="Open...", command=self.master.openFileDialog,
                 accelerator="Ctrl+O")
+        menu.add_command(label="Save", command=self.saveOrSaveAs,
+                accelerator="Ctrl+S")
+        menu.add_command(label="Save as...", command=self.saveAsDialog)
         menu.add_command(label="Print to file...",
                 command=self.printFileDialog,
                 accelerator="Ctrl+P")
@@ -216,8 +216,48 @@ class LapChartWindow(tk.Toplevel):
         else:
             self.data = chartdata(self)
 
+    def update_title(self):
+        if self.filename:
+            self.title("%s - ChartRoom v%s" % (self.filename, CR_VERSION))
+        else:
+            self.title('ChartRoom v%s' % CR_VERSION)
+
     def getCell(self, lap, pos):
         return self.chart_frame.getCell(lap, pos)
+
+    def saveAsDialog(self):
+        update_filename = False
+        if self.filename is None:
+            update_filename = True
+            path = tkFileDialog.asksaveasfilename(
+                    parent = self, title = 'Save',
+                    defaultextension='.crx',
+                    filetypes=[("ChartRoom Data", "*.crx")])
+        elif self.filename.endswith('.crx'):
+            defdir  = os.path.dirname(self.filename)
+            path = tkFileDialog.asksaveasfilename(
+                    parent = self, title = 'Save',
+                    initialdir = defdir, initialfile = self.filename,
+                    defaultextension='.crx',
+                    filetypes=[("ChartRoom Data", "*.crx")])
+        else:
+            defdir  = os.path.dirname(self.filename)
+            defpath = os.path.splitext(self.filename)[0] + '.crx'
+            path = tkFileDialog.asksaveasfilename(
+                    parent = self, title = 'Save',
+                    initialdir = defdir, initialfile = defpath,
+                    defaultextension='.crx',
+                    filetypes=[("ChartRoom Data", "*.crx")])
+        if path:
+            save_data_file(self.data, path)
+            if update_filename:
+                self.filename = path
+
+    def saveOrSaveAs(self):
+        if self.filename is None or not self.filename.endswith('.crx'):
+            self.saveAsDialog()
+        else:
+            save_data_file(self.data, self.filename)
 
     def printFileDialog(self):
         if self.filename is not None:
@@ -248,6 +288,7 @@ class LapChartGUI(tk.Tk):
         self.withdraw()
         self.bind_all('<Control-KeyPress-n>', self.newWindow)
         self.bind_all('<Control-KeyPress-o>', self.openFileDialog)
+        self.bind_all('<Control-KeyPress-s>', self.saveOrSaveAs)
         self.bind_all('<Control-KeyPress-p>', self.printFileDialog)
         self.bind_all('<Control-KeyPress-w>', self.closeWindow)
         self.bind_all('<Control-KeyPress-q>', self.quitEvent)
@@ -294,6 +335,9 @@ class LapChartGUI(tk.Tk):
             ("Orbits Passings (tab-separated)", "*.txt"),
             ])
         if path: self.openFile(path)
+
+    def saveOrSaveAs(self, event):
+        event.widget.winfo_toplevel().saveOrSaveAs()
 
     def printFileDialog(self, event):
         event.widget.winfo_toplevel().printFileDialog()
