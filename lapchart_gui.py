@@ -29,8 +29,8 @@ class LapChartGUICell:
         y1 = y + (cell_height/2)
 
         self.fill = canvas.create_rectangle(x0, y0, x1, y1, state=tk.HIDDEN,
-                width=0, fill="yellow")
-        self.text = canvas.create_text(x, y, text='', justify=tk.CENTER)
+                width=0, tags="cell")
+        self.text = canvas.create_text(x, y, text='', justify=tk.CENTER, tags="cell_text")
         self.bar_above = canvas.create_line(x0, y0, x1, y0, state=tk.HIDDEN)
         self.bar_left  = canvas.create_line(x0, y0, x0, y1, state=tk.HIDDEN)
 
@@ -68,15 +68,23 @@ class LapChartGUICell:
         pass
 
     def update(self):
+        text_tags = ['cell_text']
+        fill_tags = ['cell']
+        text = ''
         if self.data and self.data.car():
-            text = self.data.car().car_no()
-            #down = self.data.laps_down()
-            #if down is not None: text = text + "\n" + str(down)
-            #bars = self.data.bars()
-            #text = text + "\n" + ("T" if bars[0] else "F") + ("T" if bars[1] else "F")
+            car_no = self.data.car().car_no()
+            class_ = self.data.car().class_()
+            lead = self.data.laps_down()
+            down = self.data.laps_down()
+            text = car_no
+            fill_tags.append('car_%s' % text)
+            if class_ is not None: fill_tags.append('class_%s' % class_)
+            if down   is not None: fill_tags.append('down_%d' % down)
+            if lead   is not None: text_tags.append('lead_%d' % lead)
         else:
             text = ''
-        self.canvas.itemconfigure(self.text, text=text)
+        self.canvas.itemconfigure(self.text, text=text, tags=text_tags)
+        self.canvas.itemconfigure(self.fill, tags=fill_tags)
         self.update_bars()
         self.update_fill()
 
