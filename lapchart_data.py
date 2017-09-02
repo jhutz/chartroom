@@ -21,6 +21,7 @@ class chartcar:
         if val is not None:
             self._class = val
             self.parent.refresh_gui_for_car(self)
+            self.parent._classes.add(val)
         return self._class
 
     def encode(self):
@@ -32,6 +33,7 @@ class chartcar:
     def decode(self, code):
         if 'car_no' in code: self._car_no = code['car_no']
         if 'class'  in code: self._class  = code['class']
+        self.parent._classes.add(self_class)
         return self
 
 class chartdatacell:
@@ -121,6 +123,8 @@ class chartdata:
         self.cars = {}
         self.cells = []
         self._max_pos = 0
+        self._max_down = 0
+        self._classes = set()
 
     def car(self, car_id, car_no='??', create=False):
         if car_id not in self.cars and not create:
@@ -136,6 +140,12 @@ class chartdata:
         if lap is None: return self._max_pos
         if lap > len(self.cells): return None
         return len(self.cells[lap-1])
+
+    def max_down(self):
+        return self._max_down
+
+    def classes(self):
+        return [x for x in self._classes]
 
     def lookup(self, lap, pos):
         if lap > len(self.cells): return None
@@ -157,6 +167,8 @@ class chartdata:
         if lead is None:
             lead = len(self.cells)
             if lead < lap: lead = lap
+        if lead - lap > self._max_down:
+            self._max_down = lead - lap
 
         # Determine position and make sure we have enough cells
         if pos is None:

@@ -29,9 +29,10 @@ shading_mode  = { v:k for (k,v) in shadings }
 def visible(cond): return tk.NORMAL if cond else tk.HIDDEN
 
 class LapChartGUICell:
-    def __init__(self, canvas, lap, pos):
+    def __init__(self, canvas, fill_state, lap, pos):
         self.data = None
         self.canvas = canvas
+        self.fill_state = fill_state
         self.lap = lap
         self.pos = pos
 
@@ -59,27 +60,31 @@ class LapChartGUICell:
             bars = (False, False)
         self.canvas.itemconfigure(self.bar_above, state = visible(bars[0]))
         self.canvas.itemconfigure(self.bar_left,  state = visible(bars[1]))
-        #self.canvas.itemconfigure(self.fill,      state = visible(bars[0] or bars[1]))
 
     def update_fill(self):
-        #if self.data:
-        #    down = self.data.laps_down()
-        #else:
-        #    down = None
-        #if not down:    self.canvas.itemconfigure(self.fill, state=tk.HIDDEN)
-        #elif down == 1: self.canvas.itemconfigure(self.fill, state=tk.NORMAL, fill="#8cf")
-        #elif down == 2: self.canvas.itemconfigure(self.fill, state=tk.NORMAL, fill="#cfc")
-        #elif down == 3: self.canvas.itemconfigure(self.fill, state=tk.NORMAL, fill="#ffc")
-        #else:           self.canvas.itemconfigure(self.fill, state=tk.NORMAL, fill="#fcc")
-        ix = self.lap - 2
-        if ix < 0:
+        if not self.data:
             self.canvas.itemconfigure(self.fill, state=tk.HIDDEN)
+            return
+
+        down = self.data.laps_down()
+        car_no = self.data.car().car_no()
+        lead = self.data.lead()
+        if self.fill_state[0] == HIGHLIGHT_CARS and car_no in self.fill_state[1]:
+            self.canvas.itemconfigure(self.fill, state=tk.NORMAL, fill=config.highlight_color)
+        elif self.fill_state[0] == HIGHLIGHT_LAP and str(lead) in self.fill_state[1]:
+            self.canvas.itemconfigure(self.fill, state=tk.NORMAL, fill=config.highlight_color)
+        elif self.fill_state[2] == SHADE_CLASS:
+            class_ = self.data.car().class_()
+            pass # XXX
+        elif self.fill_state[2] == SHADE_DOWN and down:
+            if down > len(config.laps_down_colors):
+                self.canvas.itemconfigure(self.fill, state=tk.NORMAL,
+                        fill=config.laps_down_colors[-1])
+            else:
+                self.canvas.itemconfigure(self.fill, state=tk.NORMAL,
+                        fill=config.laps_down_colors[down-1])
         else:
-            if ix >= len(config.laps_down_colors):
-                ix = len(config.laps_down_colors) - 1
-            self.canvas.itemconfigure(self.fill, state=tk.NORMAL,
-                    fill=config.laps_down_colors[ix])
-        pass
+            self.canvas.itemconfigure(self.fill, state=tk.HIDDEN)
 
     def update(self):
         text_tags = ['cell_text']
@@ -88,13 +93,15 @@ class LapChartGUICell:
         if self.data and self.data.car():
             car_no = self.data.car().car_no()
             class_ = self.data.car().class_()
-            lead = self.data.laps_down()
+            lead = self.data.lead()
             down = self.data.laps_down()
             text = car_no
             fill_tags.append('car_%s' % text)
             if class_ is not None: fill_tags.append('class_%s' % class_)
             if down   is not None: fill_tags.append('down_%d' % down)
-            if lead   is not None: text_tags.append('lead_%d' % lead)
+            if lead   is not None:
+                fill_tags.append('lead_%d' % lead)
+                text_tags.append('lead_%d_text' % lead)
         else:
             text = ''
         self.canvas.itemconfigure(self.text, text=text, tags=text_tags)
@@ -103,10 +110,12 @@ class LapChartGUICell:
         self.update_fill()
 
 class LapChartFrame(tk.Frame):
-    def __init__(self, parent):
+    def __init__(self, parent, data, fill_state):
         self.n_laps = 0
         self.n_pos = 0
         self.cells = []
+        self.data = data
+        self.fill_state = fill_state
 
         # overall frame and scrollbars
         tk.Frame.__init__(self, parent)
@@ -196,8 +205,28 @@ class LapChartFrame(tk.Frame):
         self.lc_canvas.config(scrollregion=(x0, y0, width, height))
 
     def update_fills(self, highlight, items, shade):
-        self.fill_state = (highlight, items, shade)
-        #XXX
+        self.fill_state[:] = [ highlight, items, shade ]
+        self.lc_canvas.itemconfigure('cell', state=tk.HIDDEN)
+        if self.fill_state[2] == SHADE_CLASS:
+            for (cls,color) in zip(self.data.classes(), config.class_colors):
+                self.lc_canvas.itemconfigure("class_%s" % cls, state=tk.NORMAL, fill=color)
+        elif self.fill_state[2] == SHADE_DOWN:
+            n = min(self.data.max_down(), len(config.laps_down_colors))
+            for i in range(n):
+                self.lc_canvas.itemconfigure("down_%d" % (i+1),
+                        state=tk.NORMAL, fill=config.laps_down_colors[i])
+            if n < self.data.max_down():
+                for i in range(n, self.data.max_down()):
+                    self.lc_canvas.itemconfigure("down_%d" % i,
+                            state=tk.NORMAL, fill=config.laps_down_colors[-1])
+        if self.fill_state[0] == HIGHLIGHT_CARS:
+            for car in self.fill_state[1]:
+                self.lc_canvas.itemconfigure("car_%s" % car,
+                        state=tk.NORMAL, fill=config.highlight_color)
+        elif self.fill_state[0] == HIGHLIGHT_LAP:
+            for lead in self.fill_state[1]:
+                self.lc_canvas.itemconfigure("lead_%d" % int(lead),
+                        state=tk.NORMAL, fill=config.highlight_color)
 
     def getCell(self, lap, pos):
         update = lap > self.n_laps or pos > self.n_pos
@@ -210,7 +239,8 @@ class LapChartFrame(tk.Frame):
             self.n_pos = self.n_pos + 1
         if update: self.update_scrollregions()
         while pos > len(self.cells[lap-1]):
-            cell = LapChartGUICell(self.lc_canvas, lap, len(self.cells[lap-1])+1)
+            cell = LapChartGUICell(self.lc_canvas, self.fill_state,
+                    lap, len(self.cells[lap-1])+1)
             self.cells[lap-1].append(cell)
         return self.cells[lap-1][pos-1]
 
@@ -224,10 +254,11 @@ class LapChartWindow(tk.Toplevel):
         self.columnconfigure(0, weight=1)
         self.rowconfigure(1, weight=1)
 
+        fill_state = [ config.def_highlight, '', config.def_shading ]
         self.control_frame = tk.Frame(self)
         self.control_frame.grid(sticky=FILL_PARENT)
         self.control_frame.columnconfigure(3, weight=1)
-        self.chart_frame = LapChartFrame(self)
+        self.chart_frame = LapChartFrame(self, data, fill_state)
         self.chart_frame.grid(sticky=FILL_PARENT)
 
         tk.Label(self.control_frame, text="Highlight:").grid(row=0, column=0)
@@ -241,6 +272,8 @@ class LapChartWindow(tk.Toplevel):
         self.highlight_items_v.trace('w', lambda name, index, mode:
                 self.update_fills())
         tk.Entry(self.control_frame, textvariable=self.highlight_items_v).grid(row=0, column=2)
+        self.hl_saved = config.def_highlight
+        self.hl_saved_items = { x[0]:'' for x in highlights }
 
         tk.Label(self.control_frame, text="Shade:").grid(row=0, column=4)
         opts = [ x[1] for x in shadings ]
@@ -284,7 +317,13 @@ class LapChartWindow(tk.Toplevel):
     def update_fills(self):
         hl    = highlight_mode[self.highlight_v.get()]
         shade = shading_mode[self.shading_v.get()]
-        items  = self.highlight_items_v.get().replace(',',' ').split()
+        items = self.highlight_items_v.get()
+        if hl != self.hl_saved:
+            self.hl_saved_items[self.hl_saved] = items
+            self.hl_saved = hl
+            items = self.hl_saved_items[hl]
+            self.highlight_items_v.set(items)
+        items = items.replace(',',' ').split()
         self.chart_frame.update_fills(hl, items, shade)
 
     def getCell(self, lap, pos):
