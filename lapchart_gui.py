@@ -12,6 +12,20 @@ cell_height=20
 
 FILL_PARENT = tk.N+tk.S+tk.E+tk.W
 
+highlights = [
+        (HIGHLIGHT_CARS, 'Cars'),
+        (HIGHLIGHT_LAP,  'Lead Lap'),
+        ]
+highlight_label = { k:v for (k,v) in highlights }
+highlight_mode  = { v:k for (k,v) in highlights }
+shadings = [
+        (SHADE_NONE,  'nothing'),
+        (SHADE_CLASS, 'by class'),
+        (SHADE_DOWN,  'by laps down'),
+        ]
+shading_label = { k:v for (k,v) in shadings }
+shading_mode  = { v:k for (k,v) in shadings }
+
 def visible(cond): return tk.NORMAL if cond else tk.HIDDEN
 
 class LapChartGUICell:
@@ -181,6 +195,10 @@ class LapChartFrame(tk.Frame):
         self.pos_canvas.config(scrollregion=(x0, y0, cell_width, height))
         self.lc_canvas.config(scrollregion=(x0, y0, width, height))
 
+    def update_fills(self, highlight, items, shade):
+        self.fill_state = (highlight, items, shade)
+        #XXX
+
     def getCell(self, lap, pos):
         update = lap > self.n_laps or pos > self.n_pos
         while lap > self.n_laps:
@@ -203,11 +221,34 @@ class LapChartWindow(tk.Toplevel):
         self.filename = filename
         self.update_title()
         self.protocol('WM_DELETE_WINDOW', self.closeWindow)
-
         self.columnconfigure(0, weight=1)
-        self.rowconfigure(0, weight=1)
+        self.rowconfigure(1, weight=1)
+
+        self.control_frame = tk.Frame(self)
+        self.control_frame.grid(sticky=FILL_PARENT)
+        self.control_frame.columnconfigure(3, weight=1)
         self.chart_frame = LapChartFrame(self)
         self.chart_frame.grid(sticky=FILL_PARENT)
+
+        tk.Label(self.control_frame, text="Highlight:").grid(row=0, column=0)
+        opts = [ x[1] for x in highlights ]
+        self.highlight_v = tk.StringVar()
+        self.highlight_v.set(highlight_label[config.def_highlight])
+        self.highlight_v.trace('w', lambda name, index, mode:
+                self.update_fills())
+        tk.OptionMenu(self.control_frame, self.highlight_v, *opts).grid(row=0, column=1)
+        self.highlight_items_v = tk.StringVar()
+        self.highlight_items_v.trace('w', lambda name, index, mode:
+                self.update_fills())
+        tk.Entry(self.control_frame, textvariable=self.highlight_items_v).grid(row=0, column=2)
+
+        tk.Label(self.control_frame, text="Shade:").grid(row=0, column=4)
+        opts = [ x[1] for x in shadings ]
+        self.shading_v = tk.StringVar()
+        self.shading_v.set(shading_label[config.def_shading])
+        self.shading_v.trace('w', lambda name, index, mode:
+                self.update_fills())
+        tk.OptionMenu(self.control_frame, self.shading_v, *opts).grid(row=0, column=5)
 
         self.menubar = tk.Menu(self)
         self.config(menu=self.menubar)
@@ -239,6 +280,12 @@ class LapChartWindow(tk.Toplevel):
             self.title("%s - ChartRoom v%s" % (self.filename, CR_VERSION))
         else:
             self.title('ChartRoom v%s' % CR_VERSION)
+
+    def update_fills(self):
+        hl    = highlight_mode[self.highlight_v.get()]
+        shade = shading_mode[self.shading_v.get()]
+        items  = self.highlight_items_v.get().replace(',',' ').split()
+        self.chart_frame.update_fills(hl, items, shade)
 
     def getCell(self, lap, pos):
         return self.chart_frame.getCell(lap, pos)

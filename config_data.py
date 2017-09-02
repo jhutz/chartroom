@@ -10,7 +10,7 @@ SHADE_DOWN  = 'laps_down'
 class ChartRoomConfig:
     def __init__(self):
         self.def_highlight = HIGHLIGHT_CARS
-        self.def_shade = SHADE_NONE
+        self.def_shading = SHADE_NONE
 
         self.global_props = {}
         self.default_props = {}
@@ -23,10 +23,7 @@ class ChartRoomConfig:
                 '#f0f', # purple
                 ]
 
-        self.highlight_colors = [
-                '#ff0', # bright yellow
-                '#0ff', # cyan
-                ]
+        self.highlight_color = '#ff0' # bright yellow
 
         self.class_colors     = [
                 '#fcc', # red
