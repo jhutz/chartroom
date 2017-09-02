@@ -138,12 +138,14 @@ class LapChartFrame(tk.Frame):
 
         # layout
         self.columnconfigure(1, weight=1)
-        self.rowconfigure(1, weight=1)
-        self.lap_canvas.grid(row=0, column=1, sticky=tk.EW)
-        self.pos_canvas.grid(row=1, column=0, sticky=tk.NS)
-        self.lc_canvas.grid     (row=1, column=1, sticky=FILL_PARENT)
-        self.lc_vscrollbar.grid (row=1, column=2, sticky=tk.NS)
-        self.lc_hscrollbar.grid (row=2, column=1, sticky=tk.EW)
+        self.rowconfigure(2, weight=1)
+        tk.Label(self, text='Laps').grid(row=0, column=1, sticky=tk.NS+tk.W)
+        tk.Label(self, text='Pos').grid(row=1, column=0, sticky=FILL_PARENT)
+        self.lap_canvas.grid(row=1, column=1, sticky=tk.EW)
+        self.pos_canvas.grid(row=2, column=0, sticky=tk.NS)
+        self.lc_canvas.grid     (row=2, column=1, sticky=FILL_PARENT)
+        self.lc_vscrollbar.grid (row=2, column=2, sticky=tk.NS)
+        self.lc_hscrollbar.grid (row=3, column=1, sticky=tk.EW)
 
         # bind mouse controls
         parent.bind('<Button-4>', self.scroll_event)
