@@ -2,10 +2,10 @@ import Tkinter as tk
 import tkFileDialog
 import os.path
 from lapchart_data import chartdata
-from data_file_io import CR_VERSION
 from data_file_io import load_file, save_data_file
 from data_file_io import FileFormatException
 from printing import save_ps
+from config_data import *
 
 cell_width=34
 cell_height=20
@@ -18,6 +18,8 @@ class LapChartGUICell:
     def __init__(self, canvas, lap, pos):
         self.data = None
         self.canvas = canvas
+        self.lap = lap
+        self.pos = pos
 
         x = (lap - 1) * cell_width
         y = (pos - 1) * cell_height
@@ -55,6 +57,14 @@ class LapChartGUICell:
         #elif down == 2: self.canvas.itemconfigure(self.fill, state=tk.NORMAL, fill="#cfc")
         #elif down == 3: self.canvas.itemconfigure(self.fill, state=tk.NORMAL, fill="#ffc")
         #else:           self.canvas.itemconfigure(self.fill, state=tk.NORMAL, fill="#fcc")
+        ix = self.lap - 2
+        if ix < 0:
+            self.canvas.itemconfigure(self.fill, state=tk.HIDDEN)
+        else:
+            if ix >= len(config.laps_down_colors):
+                ix = len(config.laps_down_colors) - 1
+            self.canvas.itemconfigure(self.fill, state=tk.NORMAL,
+                    fill=config.laps_down_colors[ix])
         pass
 
     def update(self):

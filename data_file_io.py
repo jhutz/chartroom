@@ -1,9 +1,9 @@
 import csv
 import json
 from warnings import warn
+from config_data import CR_VERSION
 
 CR_MAGIC = '#>ChartRoom-'
-CR_VERSION = '0.1'
 
 class FileFormatException(Exception): pass
 class FileFormatWarning(UserWarning): pass
