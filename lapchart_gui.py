@@ -36,12 +36,12 @@ class LapChartGUICell:
         self.lap = lap
         self.pos = pos
 
-        x = (lap - 1) * cell_width
-        y = (pos - 1) * cell_height
-        x0 = x - (cell_width/2)
-        y0 = y - (cell_height/2)
-        x1 = x + (cell_width/2)
-        y1 = y + (cell_height/2)
+        x = (lap - 1) * self.ui_state['c_width']
+        y = (pos - 1) * self.ui_state['c_height']
+        x0 = x - (self.ui_state['c_width']/2)
+        y0 = y - (self.ui_state['c_height']/2)
+        x1 = x + (self.ui_state['c_width']/2)
+        y1 = y + (self.ui_state['c_height']/2)
 
         self.fill = canvas.create_rectangle(x0, y0, x1, y1, state=tk.HIDDEN,
                 width=0, tags="cell")
@@ -124,8 +124,10 @@ class LapChartFrame(tk.Frame):
         self.lc_hscrollbar = tk.Scrollbar(self, orient=tk.HORIZONTAL, command = self.xview)
 
         # create canvases for lap and position labels and the car cells
-        self.lap_canvas = tk.Canvas(self, height=cell_height, xscrollcommand=self.lc_hscrollbar.set)
-        self.pos_canvas = tk.Canvas(self, width=cell_width, yscrollcommand=self.lc_vscrollbar.set)
+        self.lap_canvas = tk.Canvas(self, height=ui_state['c_height'],
+                xscrollcommand=self.lc_hscrollbar.set)
+        self.pos_canvas = tk.Canvas(self, width=ui_state['c_width'],
+                yscrollcommand=self.lc_vscrollbar.set)
         self.lc_canvas = tk.Canvas(self, bg='white',
                 xscrollcommand=self.lc_hscrollbar.set,
                 yscrollcommand=self.lc_vscrollbar.set)
@@ -192,19 +194,19 @@ class LapChartFrame(tk.Frame):
             if reverse: self.scroll_left(count)
             else:       self.scroll_right(count)
         elif mods == 4: # control - zoom
-            if reverse: self.zoom_in(count)
-            else:       self.zoom_out(-count)
+            if reverse: self.zoom(count)
+            else:       self.zoom(-count)
 
     def zoom(self, count):
         pass
 
     def update_scrollregions(self):
-        x0 = - (cell_width / 2)
-        y0 = - (cell_height / 2)
-        width = cell_width * self.n_laps
-        height = cell_height * self.n_pos
-        self.lap_canvas.config(scrollregion=(x0, y0, width, cell_height))
-        self.pos_canvas.config(scrollregion=(x0, y0, cell_width, height))
+        x0 = - (self.ui_state['c_width'] / 2)
+        y0 = - (self.ui_state['c_height'] / 2)
+        width = self.ui_state['c_width'] * self.n_laps
+        height = self.ui_state['c_height'] * self.n_pos
+        self.lap_canvas.config(scrollregion=(x0, y0, width, self.ui_state['c_height']))
+        self.pos_canvas.config(scrollregion=(x0, y0, self.ui_state['c_width'], height))
         self.lc_canvas.config(scrollregion=(x0, y0, width, height))
 
     def update_fills(self):
@@ -233,11 +235,13 @@ class LapChartFrame(tk.Frame):
     def getCell(self, lap, pos):
         update = lap > self.n_laps or pos > self.n_pos
         while lap > self.n_laps:
-            self.lap_canvas.create_text(self.n_laps * cell_width, 0, text=self.n_laps+1)
+            self.lap_canvas.create_text(self.n_laps * self.ui_state['c_width'], 0,
+                    text=self.n_laps+1)
             self.n_laps = self.n_laps + 1
             self.cells.append([])
         while pos > self.n_pos:
-            self.pos_canvas.create_text(0, self.n_pos * cell_height, text=self.n_pos+1)
+            self.pos_canvas.create_text(0, self.n_pos * self.ui_state['c_height'],
+                    text=self.n_pos+1)
             self.n_pos = self.n_pos + 1
         if update: self.update_scrollregions()
         while pos > len(self.cells[lap-1]):
@@ -261,6 +265,8 @@ class LapChartWindow(tk.Toplevel):
                 'shading'   : config.def_shading,
                 'scale'     : 1.0,
                 }
+        self.ui_state['c_width']  = self.ui_state['scale'] * cell_width
+        self.ui_state['c_height'] = self.ui_state['scale'] * cell_height
 
         self.control_frame = tk.Frame(self)
         self.control_frame.grid(sticky=FILL_PARENT)
