@@ -9,6 +9,8 @@ from config_data import *
 
 cell_width=34
 cell_height=20
+scales = [ 25, 33, 50, 67, 75, 80, 90, 100, 110, 125, 150, 175, 200, 250, 300, 400, 500 ]
+def_scale = scales.index(100)
 
 FILL_PARENT = tk.N+tk.S+tk.E+tk.W
 
@@ -48,6 +50,21 @@ class LapChartGUICell:
         self.text = canvas.create_text(x, y, text='', justify=tk.CENTER, tags="cell_text")
         self.bar_above = canvas.create_line(x0, y0, x1, y0, state=tk.HIDDEN)
         self.bar_left  = canvas.create_line(x0, y0, x0, y1, state=tk.HIDDEN)
+
+    def reconfigure(self):
+        # recompute locations of our elements
+        # call this whenever the cell height/width changes
+        x = (self.lap - 1) * self.ui_state['c_width']
+        y = (self.pos - 1) * self.ui_state['c_height']
+        x0 = x - (self.ui_state['c_width']/2)
+        y0 = y - (self.ui_state['c_height']/2)
+        x1 = x + (self.ui_state['c_width']/2)
+        y1 = y + (self.ui_state['c_height']/2)
+
+        self.canvas.coords(self.fill, x0, y0, x1, y1)
+        self.canvas.coords(self.text, x, y)
+        self.canvas.coords(self.bar_above, x0, y0, x1, y0)
+        self.canvas.coords(self.bar_left, x0, y0, x0, y1)
 
     def set_data(self, data):
         self.data  = data
@@ -114,6 +131,8 @@ class LapChartFrame(tk.Frame):
     def __init__(self, parent, data, ui_state):
         self.n_laps = 0
         self.n_pos = 0
+        self.lap_labels = []
+        self.pos_labels = []
         self.cells = []
         self.data = data
         self.ui_state = ui_state
@@ -154,6 +173,19 @@ class LapChartFrame(tk.Frame):
         parent.bind('<Button-4>', self.scroll_event)
         parent.bind('<Button-5>', self.scroll_event)
         parent.bind('<MouseWheel>', self.scroll_event)
+
+    def reconfigure(self):
+        # recompute locations of everything
+        # call this whenever the cell height/width changes
+        self.lap_canvas.configure(height=self.ui_state['c_height'])
+        self.pos_canvas.configure(width=self.ui_state['c_width'])
+        for lap, label in enumerate(self.lap_labels):
+            self.lap_canvas.coords(label, lap * self.ui_state['c_width'], 0)
+        for pos, label in enumerate(self.pos_labels):
+            self.pos_canvas.coords(label, 0, pos * self.ui_state['c_height'])
+        for cell in [ cell for lap in self.cells for cell in lap ]:
+            cell.reconfigure()
+        self.update_scrollregions()
 
     def xview(self, *args):
         # horizontal scroll of body and lap labels
@@ -198,7 +230,11 @@ class LapChartFrame(tk.Frame):
             else:       self.zoom(-count)
 
     def zoom(self, count):
-        pass
+        self.ui_state['scale'] = max(0, min(len(scales)-1, self.ui_state['scale'] + count))
+        factor = scales[self.ui_state['scale']] * .01
+        self.ui_state['c_width']  = cell_width * factor
+        self.ui_state['c_height'] = cell_height * factor
+        self.reconfigure()
 
     def update_scrollregions(self):
         x0 = - (self.ui_state['c_width'] / 2)
@@ -235,13 +271,15 @@ class LapChartFrame(tk.Frame):
     def getCell(self, lap, pos):
         update = lap > self.n_laps or pos > self.n_pos
         while lap > self.n_laps:
-            self.lap_canvas.create_text(self.n_laps * self.ui_state['c_width'], 0,
-                    text=self.n_laps+1)
+            self.lap_labels.append(
+                    self.lap_canvas.create_text(self.n_laps * self.ui_state['c_width'], 0,
+                        text=self.n_laps+1))
             self.n_laps = self.n_laps + 1
             self.cells.append([])
         while pos > self.n_pos:
-            self.pos_canvas.create_text(0, self.n_pos * self.ui_state['c_height'],
-                    text=self.n_pos+1)
+            self.pos_labels.append(
+                    self.pos_canvas.create_text(0, self.n_pos * self.ui_state['c_height'],
+                        text=self.n_pos+1))
             self.n_pos = self.n_pos + 1
         if update: self.update_scrollregions()
         while pos > len(self.cells[lap-1]):
@@ -263,10 +301,11 @@ class LapChartWindow(tk.Toplevel):
                 'hl_mode'   : config.def_highlight,
                 'hl_list'   : [],
                 'shading'   : config.def_shading,
-                'scale'     : 1.0,
+                'scale'     : def_scale,
                 }
-        self.ui_state['c_width']  = self.ui_state['scale'] * cell_width
-        self.ui_state['c_height'] = self.ui_state['scale'] * cell_height
+        factor = scales[self.ui_state['scale']] * .01
+        self.ui_state['c_width']  = cell_width * factor
+        self.ui_state['c_height'] = cell_height * factor
 
         self.control_frame = tk.Frame(self)
         self.control_frame.grid(sticky=FILL_PARENT)
@@ -339,6 +378,9 @@ class LapChartWindow(tk.Toplevel):
         self.ui_state['hl_list'] = items.replace(',',' ').split()
         self.chart_frame.update_fills()
 
+    def zoom(self, count):
+        self.chart_frame.zoom(count)
+
     def getCell(self, lap, pos):
         return self.chart_frame.getCell(lap, pos)
 
@@ -409,6 +451,9 @@ class LapChartGUI(tk.Tk):
         self.bind_all('<Control-KeyPress-p>', self.printFileDialog)
         self.bind_all('<Control-KeyPress-w>', self.closeWindow)
         self.bind_all('<Control-KeyPress-q>', self.quitEvent)
+        self.bind_all('<Control-KeyPress-plus>',  self.zoom_in)
+        self.bind_all('<Control-KeyPress-equal>', self.zoom_in)
+        self.bind_all('<Control-KeyPress-minus>', self.zoom_out)
 
         if data:
             self.newWindow(data=data)
@@ -437,6 +482,12 @@ class LapChartGUI(tk.Tk):
             first.data.add('55') # 3, 4
             first.data.add('15', 1,15)
             first.data.add('1', 14, 1)
+
+    def zoom_in(self, event):
+        event.widget.winfo_toplevel().zoom(1)
+
+    def zoom_out(self, event):
+        event.widget.winfo_toplevel().zoom(-1)
 
     def newWindow(self, event=None, data=None, filename=None):
         return LapChartWindow(data, filename)
