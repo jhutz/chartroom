@@ -29,10 +29,10 @@ shading_mode  = { v:k for (k,v) in shadings }
 def visible(cond): return tk.NORMAL if cond else tk.HIDDEN
 
 class LapChartGUICell:
-    def __init__(self, canvas, fill_state, lap, pos):
+    def __init__(self, canvas, lap, pos, ui_state):
         self.data = None
         self.canvas = canvas
-        self.fill_state = fill_state
+        self.ui_state = ui_state
         self.lap = lap
         self.pos = pos
 
@@ -69,14 +69,14 @@ class LapChartGUICell:
         down = self.data.laps_down()
         car_no = self.data.car().car_no()
         lead = self.data.lead()
-        if self.fill_state[0] == HIGHLIGHT_CARS and car_no in self.fill_state[1]:
+        if self.ui_state['hl_mode'] == HIGHLIGHT_CARS and car_no in self.ui_state['hl_list']:
             self.canvas.itemconfigure(self.fill, state=tk.NORMAL, fill=config.highlight_color)
-        elif self.fill_state[0] == HIGHLIGHT_LAP and str(lead) in self.fill_state[1]:
+        elif self.ui_state['hl_mode'] == HIGHLIGHT_LAP and str(lead) in self.ui_state['hl_list']:
             self.canvas.itemconfigure(self.fill, state=tk.NORMAL, fill=config.highlight_color)
-        elif self.fill_state[2] == SHADE_CLASS:
+        elif self.ui_state['shading'] == SHADE_CLASS:
             class_ = self.data.car().class_()
             pass # XXX
-        elif self.fill_state[2] == SHADE_DOWN and down:
+        elif self.ui_state['shading'] == SHADE_DOWN and down:
             if down > len(config.laps_down_colors):
                 self.canvas.itemconfigure(self.fill, state=tk.NORMAL,
                         fill=config.laps_down_colors[-1])
@@ -109,13 +109,14 @@ class LapChartGUICell:
         self.update_bars()
         self.update_fill()
 
+
 class LapChartFrame(tk.Frame):
-    def __init__(self, parent, data, fill_state):
+    def __init__(self, parent, data, ui_state):
         self.n_laps = 0
         self.n_pos = 0
         self.cells = []
         self.data = data
-        self.fill_state = fill_state
+        self.ui_state = ui_state
 
         # overall frame and scrollbars
         tk.Frame.__init__(self, parent)
@@ -206,13 +207,12 @@ class LapChartFrame(tk.Frame):
         self.pos_canvas.config(scrollregion=(x0, y0, cell_width, height))
         self.lc_canvas.config(scrollregion=(x0, y0, width, height))
 
-    def update_fills(self, highlight, items, shade):
-        self.fill_state[:] = [ highlight, items, shade ]
+    def update_fills(self):
         self.lc_canvas.itemconfigure('cell', state=tk.HIDDEN)
-        if self.fill_state[2] == SHADE_CLASS:
+        if self.ui_state['shading'] == SHADE_CLASS:
             for (cls,color) in zip(self.data.classes(), config.class_colors):
                 self.lc_canvas.itemconfigure("class_%s" % cls, state=tk.NORMAL, fill=color)
-        elif self.fill_state[2] == SHADE_DOWN:
+        elif self.ui_state['shading'] == SHADE_DOWN:
             n = min(self.data.max_down(), len(config.laps_down_colors))
             for i in range(n):
                 self.lc_canvas.itemconfigure("down_%d" % (i+1),
@@ -221,12 +221,12 @@ class LapChartFrame(tk.Frame):
                 for i in range(n, self.data.max_down()):
                     self.lc_canvas.itemconfigure("down_%d" % i,
                             state=tk.NORMAL, fill=config.laps_down_colors[-1])
-        if self.fill_state[0] == HIGHLIGHT_CARS:
-            for car in self.fill_state[1]:
+        if self.ui_state['hl_mode'] == HIGHLIGHT_CARS:
+            for car in self.ui_state['hl_list']:
                 self.lc_canvas.itemconfigure("car_%s" % car,
                         state=tk.NORMAL, fill=config.highlight_color)
-        elif self.fill_state[0] == HIGHLIGHT_LAP:
-            for lead in self.fill_state[1]:
+        elif self.ui_state['hl_mode'] == HIGHLIGHT_LAP:
+            for lead in self.ui_state['hl_list']:
                 self.lc_canvas.itemconfigure("lead_%d" % int(lead),
                         state=tk.NORMAL, fill=config.highlight_color)
 
@@ -241,8 +241,8 @@ class LapChartFrame(tk.Frame):
             self.n_pos = self.n_pos + 1
         if update: self.update_scrollregions()
         while pos > len(self.cells[lap-1]):
-            cell = LapChartGUICell(self.lc_canvas, self.fill_state,
-                    lap, len(self.cells[lap-1])+1)
+            cell = LapChartGUICell(self.lc_canvas, lap, len(self.cells[lap-1])+1,
+                    self.ui_state)
             self.cells[lap-1].append(cell)
         return self.cells[lap-1][pos-1]
 
@@ -255,12 +255,17 @@ class LapChartWindow(tk.Toplevel):
         self.protocol('WM_DELETE_WINDOW', self.closeWindow)
         self.columnconfigure(0, weight=1)
         self.rowconfigure(1, weight=1)
+        self.ui_state = {
+                'hl_mode'   : config.def_highlight,
+                'hl_list'   : [],
+                'shading'   : config.def_shading,
+                'scale'     : 1.0,
+                }
 
-        fill_state = [ config.def_highlight, '', config.def_shading ]
         self.control_frame = tk.Frame(self)
         self.control_frame.grid(sticky=FILL_PARENT)
         self.control_frame.columnconfigure(3, weight=1)
-        self.chart_frame = LapChartFrame(self, data, fill_state)
+        self.chart_frame = LapChartFrame(self, data, self.ui_state)
         self.chart_frame.grid(sticky=FILL_PARENT)
 
         tk.Label(self.control_frame, text="Highlight:").grid(row=0, column=0)
@@ -317,16 +322,16 @@ class LapChartWindow(tk.Toplevel):
             self.title('ChartRoom v%s' % CR_VERSION)
 
     def update_fills(self):
-        hl    = highlight_mode[self.highlight_v.get()]
-        shade = shading_mode[self.shading_v.get()]
+        self.ui_state['hl_mode'] = highlight_mode[self.highlight_v.get()]
+        self.ui_state['shading'] = shading_mode[self.shading_v.get()]
         items = self.highlight_items_v.get()
-        if hl != self.hl_saved:
+        if self.ui_state['hl_mode'] != self.hl_saved:
             self.hl_saved_items[self.hl_saved] = items
-            self.hl_saved = hl
-            items = self.hl_saved_items[hl]
+            self.hl_saved = self.ui_state['hl_mode']
+            items = self.hl_saved_items[self.ui_state['hl_mode']]
             self.highlight_items_v.set(items)
-        items = items.replace(',',' ').split()
-        self.chart_frame.update_fills(hl, items, shade)
+        self.ui_state['hl_list'] = items.replace(',',' ').split()
+        self.chart_frame.update_fills()
 
     def getCell(self, lap, pos):
         return self.chart_frame.getCell(lap, pos)
