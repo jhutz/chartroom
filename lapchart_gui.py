@@ -596,6 +596,8 @@ class LapChartGUI(tk.Tk):
         for win in self.winfo_children():
             if hasattr(win, 'update_coloring'):
                 win.update_coloring()
+            if hasattr(win, 'update_fills'):
+                win.update_fills()
 
     def newWindow(self, event=None, data=None, filename=None):
         return LapChartWindow(self.fonts, data, filename)
