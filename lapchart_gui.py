@@ -1,4 +1,5 @@
 import Tkinter as tk
+import tkFont
 import tkFileDialog
 import os.path
 from lapchart_data import chartdata
@@ -7,8 +8,9 @@ from data_file_io import FileFormatException
 from printing import save_ps
 from config_data import *
 
-cell_width=34
-cell_height=20
+cell_width  = 34
+cell_height = 20
+bar_width   = 1.6
 scales = [ 25, 33, 50, 67, 75, 80, 90, 100, 110, 125, 150, 175, 200, 250, 300, 400, 500 ]
 def_scale = scales.index(100)
 
@@ -47,9 +49,15 @@ class LapChartGUICell:
 
         self.fill = canvas.create_rectangle(x0, y0, x1, y1, state=tk.HIDDEN,
                 width=0, tags="cell")
-        self.text = canvas.create_text(x, y, text='', justify=tk.CENTER, tags="cell_text")
-        self.bar_above = canvas.create_line(x0, y0, x1, y0, state=tk.HIDDEN)
-        self.bar_left  = canvas.create_line(x0, y0, x0, y1, state=tk.HIDDEN)
+        self.text = canvas.create_text(x, y, text='', justify=tk.CENTER,
+                font=self.ui_state['fonts']['data'][0],
+                tags="cell_text")
+        self.bar_above = canvas.create_line(x0, y0, x1, y0, state=tk.HIDDEN,
+                width=max(1, int(bar_width * self.ui_state['factor'])),
+                tags="bars")
+        self.bar_left  = canvas.create_line(x0, y0, x0, y1, state=tk.HIDDEN,
+                width=max(1, int(bar_width * self.ui_state['factor'])),
+                tags="bars")
 
     def reconfigure(self):
         # recompute locations of our elements
@@ -129,13 +137,14 @@ class LapChartGUICell:
 
 class LapChartFrame(tk.Frame):
     def __init__(self, parent, data, ui_state):
+        self.parent = parent
+        self.data = data
+        self.ui_state = ui_state
         self.n_laps = 0
         self.n_pos = 0
         self.lap_labels = []
         self.pos_labels = []
         self.cells = []
-        self.data = data
-        self.ui_state = ui_state
 
         # overall frame and scrollbars
         tk.Frame.__init__(self, parent)
@@ -161,8 +170,12 @@ class LapChartFrame(tk.Frame):
         # layout
         self.columnconfigure(1, weight=1)
         self.rowconfigure(2, weight=1)
-        tk.Label(self, text='Laps').grid(row=0, column=1, sticky=tk.NS+tk.W)
-        tk.Label(self, text='Pos').grid(row=1, column=0, sticky=FILL_PARENT)
+        label = tk.Label(self, text='Laps',
+                font=self.ui_state['fonts']['header'][0])
+        label.grid(row=0, column=1, sticky=tk.NS+tk.W)
+        label = tk.Label(self, text='Pos',
+                font=self.ui_state['fonts']['header'][0])
+        label.grid(row=1, column=0, sticky=FILL_PARENT)
         self.lap_canvas.grid(row=1, column=1, sticky=tk.EW)
         self.pos_canvas.grid(row=2, column=0, sticky=tk.NS)
         self.lc_canvas.grid     (row=2, column=1, sticky=FILL_PARENT)
@@ -185,6 +198,8 @@ class LapChartFrame(tk.Frame):
             self.pos_canvas.coords(label, 0, pos * self.ui_state['c_height'])
         for cell in [ cell for lap in self.cells for cell in lap ]:
             cell.reconfigure()
+        self.lc_canvas.itemconfigure('bars',
+                width=max(1, int(bar_width * self.ui_state['factor'])))
         self.update_scrollregions()
 
     def xview(self, *args):
@@ -226,17 +241,12 @@ class LapChartFrame(tk.Frame):
             if reverse: self.scroll_left(count)
             else:       self.scroll_right(count)
         elif mods == 4: # control - zoom
-            if reverse: self.zoom(count)
-            else:       self.zoom(-count)
-
-    def zoom(self, count):
-        self.ui_state['scale'] = max(0, min(len(scales)-1, self.ui_state['scale'] + count))
-        factor = scales[self.ui_state['scale']] * .01
-        self.ui_state['c_width']  = cell_width * factor
-        self.ui_state['c_height'] = cell_height * factor
-        self.reconfigure()
+            if reverse: self.parent.zoom(count)
+            else:       self.parent.zoom(-count)
 
     def update_scrollregions(self):
+        xpos = self.lc_hscrollbar.get()[0]
+        ypos = self.lc_vscrollbar.get()[0]
         x0 = - (self.ui_state['c_width'] / 2)
         y0 = - (self.ui_state['c_height'] / 2)
         width = self.ui_state['c_width'] * self.n_laps
@@ -244,6 +254,10 @@ class LapChartFrame(tk.Frame):
         self.lap_canvas.config(scrollregion=(x0, y0, width, self.ui_state['c_height']))
         self.pos_canvas.config(scrollregion=(x0, y0, self.ui_state['c_width'], height))
         self.lc_canvas.config(scrollregion=(x0, y0, width, height))
+        self.lap_canvas.yview_moveto(0)
+        self.pos_canvas.xview_moveto(0)
+        self.xview(tk.MOVETO, xpos)
+        self.yview(tk.MOVETO, ypos)
 
     def update_fills(self):
         self.lc_canvas.itemconfigure('cell', state=tk.HIDDEN)
@@ -272,25 +286,30 @@ class LapChartFrame(tk.Frame):
         update = lap > self.n_laps or pos > self.n_pos
         while lap > self.n_laps:
             self.lap_labels.append(
-                    self.lap_canvas.create_text(self.n_laps * self.ui_state['c_width'], 0,
+                    self.lap_canvas.create_text(
+                        self.n_laps * self.ui_state['c_width'], 0,
+                        font=self.ui_state['fonts']['header'][0],
                         text=self.n_laps+1))
             self.n_laps = self.n_laps + 1
             self.cells.append([])
         while pos > self.n_pos:
             self.pos_labels.append(
-                    self.pos_canvas.create_text(0, self.n_pos * self.ui_state['c_height'],
+                    self.pos_canvas.create_text(
+                        0, self.n_pos * self.ui_state['c_height'],
+                        font=self.ui_state['fonts']['header'][0],
                         text=self.n_pos+1))
             self.n_pos = self.n_pos + 1
         if update: self.update_scrollregions()
         while pos > len(self.cells[lap-1]):
-            cell = LapChartGUICell(self.lc_canvas, lap, len(self.cells[lap-1])+1,
+            cell = LapChartGUICell(
+                    self.lc_canvas, lap, len(self.cells[lap-1])+1,
                     self.ui_state)
             self.cells[lap-1].append(cell)
         return self.cells[lap-1][pos-1]
 
         
 class LapChartWindow(tk.Toplevel):
-    def __init__(self, data=None, filename=None):
+    def __init__(self, fonts, data=None, filename=None):
         tk.Toplevel.__init__(self)
         self.filename = filename
         self.update_title()
@@ -302,10 +321,12 @@ class LapChartWindow(tk.Toplevel):
                 'hl_list'   : [],
                 'shading'   : config.def_shading,
                 'scale'     : def_scale,
+                'fonts'     : {
+                    name : (font.copy(), size)
+                    for (name,(font,size)) in fonts.iteritems()
+                    }
                 }
-        factor = scales[self.ui_state['scale']] * .01
-        self.ui_state['c_width']  = cell_width * factor
-        self.ui_state['c_height'] = cell_height * factor
+        self.scale()
 
         self.control_frame = tk.Frame(self)
         self.control_frame.grid(sticky=FILL_PARENT)
@@ -378,8 +399,17 @@ class LapChartWindow(tk.Toplevel):
         self.ui_state['hl_list'] = items.replace(',',' ').split()
         self.chart_frame.update_fills()
 
+    def scale(self):
+        self.ui_state['factor'] = scales[self.ui_state['scale']] * .01
+        self.ui_state['c_width']  = cell_width *  self.ui_state['factor']
+        self.ui_state['c_height'] = cell_height *  self.ui_state['factor']
+        for (name,(font,size)) in self.ui_state['fonts'].iteritems():
+            font.configure(size = - int(size * self.ui_state['factor']))
+
     def zoom(self, count):
-        self.chart_frame.zoom(count)
+        self.ui_state['scale'] = max(0, min(len(scales)-1, self.ui_state['scale'] + count))
+        self.scale()
+        self.chart_frame.reconfigure()
 
     def getCell(self, lap, pos):
         return self.chart_frame.getCell(lap, pos)
@@ -445,6 +475,17 @@ class LapChartGUI(tk.Tk):
         tk.Tk.__init__(self)
         self.overrideredirect(1)
         self.withdraw()
+
+        headerFont = tkFont.nametofont('TkHeadingFont').copy()
+        dataFont = tkFont.nametofont('TkDefaultFont').copy()
+        boldFont = dataFont.copy()
+        boldFont.configure(weight='bold')
+        self.fonts = {
+                'header' : (headerFont, headerFont.metrics('ascent')),
+                'data'   : (dataFont,   dataFont.metrics('ascent')),
+                'bold'   : (boldFont,   boldFont.metrics('ascent')),
+                }
+
         self.bind_all('<Control-KeyPress-n>', self.newWindow)
         self.bind_all('<Control-KeyPress-o>', self.openFileDialog)
         self.bind_all('<Control-KeyPress-s>', self.saveOrSaveAs)
@@ -490,7 +531,7 @@ class LapChartGUI(tk.Tk):
         event.widget.winfo_toplevel().zoom(-1)
 
     def newWindow(self, event=None, data=None, filename=None):
-        return LapChartWindow(data, filename)
+        return LapChartWindow(self.fonts, data, filename)
 
     def openFile(self, file):
         newdata = chartdata()
