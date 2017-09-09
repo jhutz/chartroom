@@ -11,19 +11,6 @@ COLOR_NONE = 'none'
 COLOR_NORMAL  = 'traditional'
 COLOR_RAINBOW = 'rainbow'
 
-##  Lap Coloring:
-##
-##    ( )  None
-##
-##    ( )  Traditional
-##         [] Color  [] Bold  one lap in every ___
-##         [] Use a different color for final lap
-##         [] Use bold for final lap
-##
-##    ( )  Rainbow
-##         Use a new color for every lap
-##         [] Use bold for final lap
-
 
 class ChartRoomConfig:
     def __init__(self):

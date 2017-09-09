@@ -7,6 +7,7 @@ from data_file_io import load_file, save_data_file
 from data_file_io import FileFormatException
 from printing import save_ps
 from config_data import *
+from config_gui import *
 
 cell_width  = 34
 cell_height = 20
@@ -388,7 +389,10 @@ class LapChartWindow(tk.Toplevel):
         self.highlight_items_v = tk.StringVar()
         self.highlight_items_v.trace('w', lambda name, index, mode:
                 self.update_fills())
-        tk.Entry(self.control_frame, textvariable=self.highlight_items_v).grid(row=0, column=2)
+        tk.Entry(self.control_frame,
+                textvariable=self.highlight_items_v,
+                insertofftime=0,
+                ).grid(row=0, column=2)
         self.hl_saved = config.def_highlight
         self.hl_saved_items = { x[0]:'' for x in highlights }
 
@@ -419,6 +423,15 @@ class LapChartWindow(tk.Toplevel):
                 accelerator="Ctrl+W")
         menu.add_command(label="Quit", command=self.master.quit,
                 accelerator="Ctrl+Q")
+
+        menu = tk.Menu(self.menubar, tearoff=0)
+        self.menubar.add_cascade(label="Edit", menu=menu)
+        menu.add_command(label="Preferences", command=self.master.prefsDialog)
+
+        menu = tk.Menu(self.menubar, tearoff=0)
+        self.menubar.add_cascade(label="Help", menu=menu)
+        menu.add_command(label="About", command=self.master.aboutDialog)
+
         if data:
             self.data = data
             data.attach_gui(self)
@@ -572,14 +585,17 @@ class LapChartGUI(tk.Tk):
             first.data.add('1', 14, 1)
 
     def zoom_in(self, event):
-        event.widget.winfo_toplevel().zoom(1)
+        it = event.widget.winfo_toplevel()
+        if hasattr(it, 'zoom'): it.zoom(1)
 
     def zoom_out(self, event):
-        event.widget.winfo_toplevel().zoom(-1)
+        it = event.widget.winfo_toplevel()
+        if hasattr(it, 'zoom'): it.zoom(-1)
 
     def update_coloring(self):
         for win in self.winfo_children():
-            win.update_coloring()
+            if hasattr(win, 'update_coloring'):
+                win.update_coloring()
 
     def newWindow(self, event=None, data=None, filename=None):
         return LapChartWindow(self.fonts, data, filename)
@@ -597,16 +613,25 @@ class LapChartGUI(tk.Tk):
         if path: self.openFile(path)
 
     def saveOrSaveAs(self, event):
-        event.widget.winfo_toplevel().saveOrSaveAs()
+        it = event.widget.winfo_toplevel()
+        if hasattr(it, 'saveOrSaveAs'): it.saveOrSaveAs()
 
     def printFileDialog(self, event):
-        event.widget.winfo_toplevel().printFileDialog()
+        it = event.widget.winfo_toplevel()
+        if hasattr(it, 'printFileDialog'): it.printFileDialog()
 
     def closeWindow(self, event):
-        event.widget.winfo_toplevel().closeWindow()
+        it = event.widget.winfo_toplevel()
+        if hasattr(it, 'closeWindow'): it.closeWindow()
 
     def quitEvent(self, event):
         self.quit()
+
+    def prefsDialog(self):
+        PreferencesDialog(self)
+
+    def aboutDialog(self):
+        pass
 
     def _deref(self):
         if not self.winfo_children(): self.quit()
