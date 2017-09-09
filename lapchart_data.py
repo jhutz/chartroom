@@ -159,7 +159,10 @@ class chartdata:
         if lap is None:
             lap = car.laps() + 1
         if lap > len(self.cells):
+            old_nlaps = len(self.cells)
             self.cells.extend([[] for i in range(lap - len(self.cells))])
+            if self.gui:
+                self.gui.update_coloring(since=old_nlaps)
         if lap > car.laps():
             car.laps(lap)
 

@@ -32,6 +32,32 @@ shading_mode  = { v:k for (k,v) in shadings }
 
 def visible(cond): return tk.NORMAL if cond else tk.HIDDEN
 
+def lap_color(lap, nlaps):
+    if config.color_mode == COLOR_NORMAL:
+        # Traditional coloring
+        n_colors = len(config.lap_colors) - (2 if config.color_final else 1)
+        is_colored = (lap % config.color_period) == 0
+        bold = ((config.bold_final and lap == nlaps)
+                or (config.color_bold and is_colored))
+        if config.color_final and lap == nlaps:
+            return (config.lap_colors[-1], bold)
+        elif config.color_laps and is_colored:
+            color = (lap // config.color_period - 1) % n_colors
+            return (config.lap_colors[1+color], bold)
+        else:
+            return (config.lap_colors[0], bold)
+
+    elif config.color_mode == COLOR_RAINBOW:
+        # Rainbow coloring
+        color = config.lap_colors[(lap - 1) % len(config.lap_colors)]
+        bold  = config.rainbow_bold and lap == nlaps
+        return (color, bold)
+
+    else:
+        # No coloring
+        return ('black', False)
+
+
 class LapChartGUICell:
     def __init__(self, canvas, lap, pos, ui_state):
         self.data = None
@@ -111,6 +137,16 @@ class LapChartGUICell:
         else:
             self.canvas.itemconfigure(self.fill, state=tk.HIDDEN)
 
+    def update_text(self):
+        if self.data:
+            lead = self.data.lead()
+            nlaps = self.data.parent.num_laps()
+            (color, bold) = lap_color(lead, nlaps)
+        else:
+            (color, bold) = ('black', False)
+        font = self.ui_state['fonts']['bold' if bold else 'data'][0]
+        self.canvas.itemconfigure(self.text, font=font, fill=color)
+
     def update(self):
         text_tags = ['cell_text']
         fill_tags = ['cell']
@@ -131,6 +167,7 @@ class LapChartGUICell:
             text = ''
         self.canvas.itemconfigure(self.text, text=text, tags=text_tags)
         self.canvas.itemconfigure(self.fill, tags=fill_tags)
+        self.update_text()
         self.update_bars()
         self.update_fill()
 
@@ -282,6 +319,13 @@ class LapChartFrame(tk.Frame):
                 self.lc_canvas.itemconfigure("lead_%d" % int(lead),
                         state=tk.NORMAL, fill=config.highlight_color)
 
+    def update_coloring(self, since=1):
+        nlaps = self.data.num_laps()
+        for lap in range(since, nlaps + 1):
+            (color, bold) = lap_color(lap, nlaps)
+            font = self.ui_state['fonts']['bold' if bold else 'data'][0]
+            self.lc_canvas.itemconfigure("lead_%d_text" % lap, font=font, fill=color)
+
     def getCell(self, lap, pos):
         update = lap > self.n_laps or pos > self.n_pos
         while lap > self.n_laps:
@@ -398,6 +442,9 @@ class LapChartWindow(tk.Toplevel):
             self.highlight_items_v.set(items)
         self.ui_state['hl_list'] = items.replace(',',' ').split()
         self.chart_frame.update_fills()
+
+    def update_coloring(self, since=1):
+        self.chart_frame.update_coloring(since)
 
     def scale(self):
         self.ui_state['factor'] = scales[self.ui_state['scale']] * .01
@@ -529,6 +576,10 @@ class LapChartGUI(tk.Tk):
 
     def zoom_out(self, event):
         event.widget.winfo_toplevel().zoom(-1)
+
+    def update_coloring(self):
+        for win in self.winfo_children():
+            win.update_coloring()
 
     def newWindow(self, event=None, data=None, filename=None):
         return LapChartWindow(self.fonts, data, filename)
