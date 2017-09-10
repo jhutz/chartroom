@@ -17,7 +17,8 @@ class ColorListRow:
         self.old_color = color
         self.new_color = color
         self.old_swatch = self.canvas.create_rectangle(0,0,0,0, fill=color)
-        self.new_swatch = self.canvas.create_rectangle(0,0,0,0, fill=color)
+        self.new_swatch = self.canvas.create_rectangle(0,0,0,0, fill=color,
+                activewidth=2)
         self.btn_frame = tk.Frame(canvas)
         self.btns = self.canvas.create_window(0,0,
                 anchor=tk.NW, window=self.btn_frame)
@@ -31,13 +32,14 @@ class ColorListRow:
         width = sum([b.winfo_reqwidth() for b in [self.up_btn, self.dn_btn, self.rm_btn]])
         self.moveto(pos, nrows)
         self.canvas.configure(width=PAD_LEFT + 2*SWATCH_WIDTH + PAD_SEP + width + PAD_RIGHT)
+        self.canvas.tag_bind(self.new_swatch, '<ButtonPress-1>', self.edit)
 
     def up(self):     self.parent.swap(self._pos - 1)
     def down(self):   self.parent.swap(self._pos)
     def remove(self): self.parent.remove(self._pos)
     def get(self):    return self.new_color
 
-    def edit(self):
+    def edit(self, event=None):
         (rgb, newcolor) = tkColorChooser.askcolor(self.new_color,
                 parent=self.parent.winfo_toplevel())
         if newcolor is None: return
