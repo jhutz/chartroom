@@ -7,7 +7,7 @@ from data_file_io import load_file, save_data_file
 from data_file_io import FileFormatException
 from printing import save_ps
 from config_data import *
-from config_gui import *
+from config_gui import PreferencesDialog
 
 cell_width  = 34
 cell_height = 20
