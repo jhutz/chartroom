@@ -11,7 +11,6 @@ PAD_SEP   = 5
 PAD_RIGHT = 2
 
 class ColorListRow:
-
     def __init__(self, parent, canvas, pos, nrows, color):
         self.canvas = canvas
         self.parent = parent
@@ -44,6 +43,7 @@ class ColorListRow:
         if newcolor is None: return
         self.new_color = newcolor
         self.canvas.itemconfigure(self.new_swatch, fill=self.new_color)
+        self.parent.applyChanges()
 
     def moveto(self, pos, nrows):
         self._pos = pos
@@ -68,8 +68,10 @@ class ColorListRow:
 
 
 class ColorListDialog(tk.Toplevel):
-    def __init__(self, colors, title='Color List Editor'):
-        self._old_colors = colors
+    def __init__(self, colors, title='Color List Editor', gui=None):
+        self._colors = colors
+        self._old_colors = colors[:]
+        self._gui = gui
         tk.Toplevel.__init__(self)
         self.title(title)
         self.protocol('WM_DELETE_WINDOW', self.closeWindow)
@@ -113,12 +115,14 @@ class ColorListDialog(tk.Toplevel):
         self._items.append(ColorListRow(self, self.canvas, newpos, newpos+1, newcolor))
         if newpos > 0: self._items[newpos-1].moveto(newpos - 1, newpos+1)
         self.resize_canvas()
+        self.applyChanges()
 
     def swap(self, pos):
         if pos < 0 or pos > len(self._items) - 2: return
         (self._items[pos], self._items[pos+1]) = (self._items[pos+1], self._items[pos])
         self._items[pos].moveto(pos, len(self._items))
         self._items[pos+1].moveto(pos+1, len(self._items))
+        self.applyChanges()
 
     def remove(self, pos):
         if pos < 0 or pos > len(self._items) - 1: return
@@ -131,6 +135,7 @@ class ColorListDialog(tk.Toplevel):
             for i, item in enumerate(self._items[pos:], start=pos):
                 item.moveto(i, len(self._items))
         self.resize_canvas()
+        self.applyChanges()
 
     def fill(self):
         self._items = [
@@ -140,9 +145,14 @@ class ColorListDialog(tk.Toplevel):
         self.resize_canvas()
         self.canvas.yview_moveto(0)
 
+    def applyChanges(self):
+        self._colors[:] = [i.get() for i in self._items]
+        if self._gui: self._gui.update_coloring()
+
     def revertChanges(self):
         for item in self._items: item.destroy()
         self.fill()
+        self.applyChanges()
 
     def closeWindow(self):
         self.destroy()
@@ -154,13 +164,14 @@ class ColorListDialog(tk.Toplevel):
 
 class ColorListWidget(tk.Frame):
     def __init__(self, master, colors, single=False, title='Color Editor',
-            height=SWATCH_HEIGHT, itemwidth=SWATCH_WIDTH_SMALL):
+            height=SWATCH_HEIGHT, itemwidth=SWATCH_WIDTH_SMALL, gui=None):
         self._colors = colors
         self._swatches = []
         self._itemwidth = itemwidth
         self._height    = height
         self._single    = single
         self._title     = title
+        self._gui       = gui
 
         if single: del self._colors[1:]
 
@@ -197,7 +208,7 @@ class ColorListWidget(tk.Frame):
                 self._colors[0] = newcolor
                 self.refresh()
         else:
-            ColorListDialog(self._colors, title=self._title)
+            ColorListDialog(self._colors, title=self._title, gui=self._gui)
 
 
 class PreferencesDialog(tk.Toplevel):
@@ -237,7 +248,7 @@ class PreferencesDialog(tk.Toplevel):
                 text='Lead Laps',
                 ).grid(row=0, column=2, sticky=tk.W)
         tk.Label(frame, text='Highlight color:').grid(row=1, sticky=tk.W)
-        ColorListWidget(frame, colors=self.highlight_color,
+        ColorListWidget(frame, gui=self.gui, colors=self.highlight_color,
                 single=True, title='Highlight Color',
                 ).grid(row=1, column=1, columnspan=2, sticky=tk.W)
         frame.grid(columnspan=2, sticky=tk.EW)
@@ -285,7 +296,8 @@ class PreferencesDialog(tk.Toplevel):
                 variable=self.rainbow_bold_v,
                 text='Use bold for final lap'
                 ).grid(column=1, sticky=tk.W)
-        ColorListWidget(frame, colors=config.lap_colors, title='Lead Lap Colors',
+        ColorListWidget(frame, gui=self.gui, colors=config.lap_colors,
+                title='Lead Lap Colors',
                 ).grid(column=1, sticky=tk.EW)
         frame.grid(row=1, column=0, sticky=tk.NSEW)
 
@@ -306,7 +318,8 @@ class PreferencesDialog(tk.Toplevel):
                 ).grid(sticky=tk.W, columnspan=2)
         tk.Label(frame, text='Shade each class using one of these colors:'
                 ).grid(sticky=tk.W, column=1)
-        ColorListWidget(frame, colors=config.class_colors, title='Class Shading Colors',
+        ColorListWidget(frame, gui=self.gui, colors=config.class_colors,
+                title='Class Shading Colors',
                 ).grid(column=1, sticky=tk.EW)
         tk.Radiobutton(frame,
                 variable=self.def_shading_v,
@@ -315,7 +328,8 @@ class PreferencesDialog(tk.Toplevel):
                 ).grid(sticky=tk.W, columnspan=2)
         tk.Label(frame, text='Shade based on number of laps down'
                 ).grid(sticky=tk.W, column=1)
-        ColorListWidget(frame, colors=config.laps_down_colors, title='Laps Down Colors',
+        ColorListWidget(frame, gui=self.gui, colors=config.laps_down_colors,
+                title='Laps Down Colors',
                 ).grid(column=1, sticky=tk.EW)
         frame.grid(row=1, column=1, sticky=tk.NSEW)
 
