@@ -7,7 +7,7 @@ from data_file_io import load_file, save_data_file
 from data_file_io import FileFormatException
 from printing import save_ps
 from config_data import *
-from config_gui import PreferencesDialog
+from config_gui import PreferencesDialog, PropertyListDialog
 
 cell_width  = 34
 cell_height = 20
@@ -426,6 +426,10 @@ class LapChartWindow(tk.Toplevel):
 
         menu = tk.Menu(self.menubar, tearoff=0)
         self.menubar.add_cascade(label="Edit", menu=menu)
+        menu.add_command(label="Default Properties",
+                command=self.master.editDefaultProps)
+        menu.add_command(label="Global Properties",
+                command=self.master.editGlobalProps)
         menu.add_command(label="Preferences", command=self.master.prefsDialog)
 
         menu = tk.Menu(self.menubar, tearoff=0)
@@ -628,6 +632,12 @@ class LapChartGUI(tk.Tk):
 
     def quitEvent(self, event):
         self.quit()
+
+    def editGlobalProps(self):
+        PropertyListDialog(config.global_props, 'Global Properties')
+
+    def editDefaultProps(self):
+        PropertyListDialog(config.default_props, 'Default Properties')
 
     def prefsDialog(self):
         PreferencesDialog(self)
