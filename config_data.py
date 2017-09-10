@@ -1,4 +1,15 @@
 CR_VERSION = '0.1'
+CR_YEARS   = '2017'
+CR_AUTHOR  = 'Jeffrey Hutzelman'
+CR_URL     = ''
+CR_EMAIL   = 'jhutz@cmu.edu'
+
+CR_COPYRIGHT = '''
+Copyright C %s, %s.  All rights reserved.
+
+%s
+%s
+'''
 
 HIGHLIGHT_CARS = 'cars'
 HIGHLIGHT_LAP  = 'lead_lap'

@@ -1,6 +1,7 @@
 import Tkinter as tk
 import tkFont
 import tkFileDialog
+import tkMessageBox
 import os.path
 from lapchart_data import chartdata
 from data_file_io import load_file, save_data_file
@@ -413,12 +414,15 @@ class LapChartWindow(tk.Toplevel):
                 accelerator="Ctrl+N")
         menu.add_command(label="Open...", command=self.master.openFileDialog,
                 accelerator="Ctrl+O")
+        menu.add_separator()
         menu.add_command(label="Save", command=self.saveOrSaveAs,
                 accelerator="Ctrl+S")
         menu.add_command(label="Save as...", command=self.saveAsDialog)
+        menu.add_separator()
         menu.add_command(label="Print to file...",
                 command=self.printFileDialog,
                 accelerator="Ctrl+P")
+        menu.add_separator()
         menu.add_command(label="Close", command=self.closeWindow,
                 accelerator="Ctrl+W")
         menu.add_command(label="Quit", command=self.master.quit,
@@ -643,7 +647,14 @@ class LapChartGUI(tk.Tk):
         PreferencesDialog(self)
 
     def aboutDialog(self):
-        pass
+        tkMessageBox.showinfo(title='About ChartRoom', message=u'''
+ChartRoom %s
+%s
+
+Copyright \u00A9 %s %s
+All Rights Reserved.
+Email %s for more information.
+''' % (CR_VERSION, CR_URL, CR_YEARS, CR_AUTHOR, CR_EMAIL))
 
     def _deref(self):
         if not self.winfo_children(): self.quit()
