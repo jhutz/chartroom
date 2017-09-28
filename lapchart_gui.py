@@ -430,6 +430,9 @@ class LapChartWindow(tk.Toplevel):
 
         menu = tk.Menu(self.menubar, tearoff=0)
         self.menubar.add_cascade(label="Edit", menu=menu)
+        menu.add_command(label="File Properties",
+                command=self.editProps)
+        menu.add_separator()
         menu.add_command(label="Default Properties",
                 command=self.master.editDefaultProps)
         menu.add_command(label="Global Properties",
@@ -532,6 +535,9 @@ class LapChartWindow(tk.Toplevel):
                     filetypes=[("PostScript", "*.ps")])
         if path:
             save_ps(self.data, path)
+
+    def editProps(self):
+        PropertyListDialog(self.data.props, 'Properties')
 
     def closeWindow(self):
         self.destroy()

@@ -40,7 +40,11 @@ class ChartRoomConfig:
         self.rainbow_bold = True      # Last lap in bold
 
         self.global_props = {}
-        self.default_props = {}
+        self.default_props = {
+                'sanction' : 'IDC-17-S',
+                'venue'    : 'Indianapolis Motor Speedway',
+                'course'   : '2.592 Mile Road Course',
+                }
 
         # Colors for lap coloring (traditional or rainbow modes)
         # In traditional mode, the first color is used for uncolored laps.

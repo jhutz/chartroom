@@ -1,3 +1,5 @@
+from config_data import config
+
 class chartcar:
     def __init__(self, parent, car_id, car_no='??'):
         self.parent = parent
@@ -121,6 +123,7 @@ class chartdatacell:
 class chartdata:
     def __init__(self, gui=None):
         self.gui = gui
+        self.props = config.default_props.copy()
         self.cars = {}
         self.cells = []
         self._max_pos = 0
@@ -209,6 +212,7 @@ class chartdata:
             'cells' : [
                 [ cell.encode() if cell else None for cell in lap ]
                 for lap in self.cells ],
+            'props' : self.props,
         }
 
     def decode(self, code):
@@ -219,6 +223,9 @@ class chartdata:
                     if attrs else None
                     for pos, attrs in enumerate(col, start=1) ]
                 for lap, col in enumerate(code['cells'], start=1) ]
+        if 'props' in code:
+            for k,v in code['props'].iteritems():
+                self.props[k] = v
         self._max_pos = max(len(lap) for lap in self.cells)
         for cell in [ cell for lap in self.cells for cell in lap if cell ]:
             cell.update_bars()
