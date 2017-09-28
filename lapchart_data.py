@@ -32,8 +32,9 @@ class chartcar:
 
     def decode(self, code):
         if 'car_no' in code: self._car_no = code['car_no']
-        if 'class'  in code: self._class  = code['class']
-        self.parent._classes.add(self_class)
+        if 'class'  in code:
+            self._class  = code['class']
+            self.parent._classes.add(self._class)
         return self
 
 class chartdatacell:
