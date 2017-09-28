@@ -2,7 +2,7 @@ import sys
 import os.path
 import re
 import time
-from config_data import CR_VERSION
+from config_data import config, CR_VERSION
 
 ## All dimensions in points
 PAGE_WIDTH    = 8.5 * 72
@@ -25,15 +25,15 @@ Fonts = {
         }
 
 Headers = [
-        # row  right  font     text
-        (   0, False, 'Title', 'Chart'),
-        (   2, False, 'Info',  'IDC-17-S'),
-        (   3, False, 'Info',  'Indianapolis Motor Speedway'),
-        (   4, False, 'Info',  '2.592 Mile Road Course'),
+        # row  right  font     prop,       text
+        (   0, False, 'Title', None,       'Chart'),
+        (   2, False, 'Info',  'sanction', None),
+        (   3, False, 'Info',  'venue',    None),
+        (   4, False, 'Info',  'course',   None),
 
-        (   0, True,  'Title', 'SM'),
-        (   3, True,  'Info',  '11:00 AM'),
-        (   4, True,  'Info',  'Saturday, September 24, 2016'),
+        (   0, True,  'Title', 'group',    None),
+        (   3, True,  'Info',  'time',     None),
+        (   4, True,  'Info',  'date',     None),
         ]
 
 Images = [
@@ -44,6 +44,12 @@ Images = [
         # x     y     halign    valign    scale  filename
         ( None, 0,    'center', 'top',    0.70,  'logo.eps' ),
         ]
+
+def propval(data, prop, default=None):
+    if prop in data.props: return data.props[prop]
+    if prop in config.global_props: return config.global_props[prop]
+    if default is None: return ''
+    return default
 
 def ps_string(str): return re.sub(r'[()\\]', r'\\0', str)
 
@@ -124,7 +130,9 @@ def emit_one_page(data, output, pageno, first_lap, n_laps, top_pos, n_pos):
     # beyond the "inside" text edges, and we always stretch the bbox all the
     # way to the top page margin.
     lastfont = ''
-    for (row, right, font, text) in Headers:
+    for (row, right, font, prop, default) in Headers:
+        text = propval(data, prop, default)
+        print (prop,default,text)
         row_y = HEADER_ORIGIN - row * CELL_HEIGHT
         text_h = Fonts[font+'Font'][1]
         if font != lastfont:
