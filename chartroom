@@ -4,7 +4,7 @@ import sys
 
 from lapchart_data import chartdata
 from lapchart_gui import LapChartGUI
-from data_file_io import load_file
+from data_file_io import load_file, save_data_file
 from printing import save_ps
 
 if __name__ == '__main__':
@@ -12,6 +12,12 @@ if __name__ == '__main__':
         data = chartdata()
         load_file(data, sys.argv[2])
         save_ps(data, sys.argv[3])
+        sys.exit(0)
+
+    if len(sys.argv) == 4 and sys.argv[1] == '-C':
+        data = chartdata()
+        load_file(data, sys.argv[2])
+        save_data_file(data, sys.argv[3])
         sys.exit(0)
 
     gui = LapChartGUI(files=sys.argv[1:])
