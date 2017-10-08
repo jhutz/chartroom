@@ -22,8 +22,9 @@ class chartcar:
     def class_(self, val=None):
         if val is not None:
             self._class = val
+            self.parent.add_class(val)
+            self.parent.clean_classes()
             self.parent.refresh_gui_for_car(self)
-            self.parent._classes.add(val)
         return self._class
 
     def encode(self):
@@ -36,7 +37,7 @@ class chartcar:
         if 'car_no' in code: self._car_no = code['car_no']
         if 'class'  in code:
             self._class  = code['class']
-            self.parent._classes.add(self._class)
+            self.parent.add_class(self._class)
         return self
 
 class chartdatacell:
@@ -128,7 +129,7 @@ class chartdata:
         self.cells = []
         self._max_pos = 0
         self._max_down = 0
-        self._classes = set()
+        self._classes = []
 
     def car(self, car_id, car_no='??', create=False):
         if car_id not in self.cars and not create:
@@ -148,8 +149,16 @@ class chartdata:
     def max_down(self):
         return self._max_down
 
-    def classes(self):
-        return [x for x in self._classes]
+    def classes(self): return self._classes
+
+    def add_class(self, class_):
+        if class_ not in self._classes: self._classes.append(class_)
+
+    def clean_classes(self):
+        existing = set([car.class_() for car in self.cars.itervalues()])
+        if len([c for c in self._classes if c not in existing]):
+            self._classes[:] = [c for c in self._classes if c in existing]
+            self.gui.update_fills()
 
     def lookup(self, lap, pos):
         if lap > len(self.cells): return None
