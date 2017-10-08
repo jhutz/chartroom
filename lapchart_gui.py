@@ -35,6 +35,10 @@ shading_mode  = { v:k for (k,v) in shadings }
 def visible(cond): return tk.NORMAL if cond else tk.HIDDEN
 
 def lap_color(lap, nlaps):
+    if lap is None:
+        # No coloring
+        return ('black', False)
+
     if config.color_mode == COLOR_NORMAL:
         # Traditional coloring
         n_colors = len(config.lap_colors) - (2 if config.color_final else 1)
@@ -115,7 +119,7 @@ class LapChartGUICell:
         self.canvas.itemconfigure(self.bar_left,  state = visible(bars[1]))
 
     def update_fill(self):
-        if not self.data:
+        if not self.data or not self.data.car():
             self.canvas.itemconfigure(self.fill, state=tk.HIDDEN)
             return
 
@@ -300,18 +304,19 @@ class LapChartFrame(tk.Frame):
 
     def update_fills(self):
         self.lc_canvas.itemconfigure('cell', state=tk.HIDDEN)
-        if self.ui_state['shading'] == SHADE_CLASS:
-            for (cls,color) in zip(self.data.classes(), config.class_colors):
-                self.lc_canvas.itemconfigure("class_%s" % cls, state=tk.NORMAL, fill=color)
-        elif self.ui_state['shading'] == SHADE_DOWN:
-            n = min(self.data.max_down(), len(config.laps_down_colors))
-            for i in range(n):
-                self.lc_canvas.itemconfigure("down_%d" % (i+1),
-                        state=tk.NORMAL, fill=config.laps_down_colors[i])
-            if n < self.data.max_down():
-                for i in range(n, self.data.max_down()):
-                    self.lc_canvas.itemconfigure("down_%d" % i,
-                            state=tk.NORMAL, fill=config.laps_down_colors[-1])
+        if self.data:
+            if self.ui_state['shading'] == SHADE_CLASS:
+                for (cls,color) in zip(self.data.classes(), config.class_colors):
+                    self.lc_canvas.itemconfigure("class_%s" % cls, state=tk.NORMAL, fill=color)
+            elif self.ui_state['shading'] == SHADE_DOWN:
+                n = min(self.data.max_down(), len(config.laps_down_colors))
+                for i in range(n):
+                    self.lc_canvas.itemconfigure("down_%d" % (i+1),
+                            state=tk.NORMAL, fill=config.laps_down_colors[i])
+                if n < self.data.max_down():
+                    for i in range(n, self.data.max_down()):
+                        self.lc_canvas.itemconfigure("down_%d" % i,
+                                state=tk.NORMAL, fill=config.laps_down_colors[-1])
         if self.ui_state['hl_mode'] == HIGHLIGHT_CARS:
             for car in self.ui_state['hl_list']:
                 self.lc_canvas.itemconfigure("car_%s" % car,
@@ -322,9 +327,8 @@ class LapChartFrame(tk.Frame):
                         state=tk.NORMAL, fill=config.highlight_color)
 
     def update_coloring(self, since=1):
-        nlaps = self.data.num_laps()
-        for lap in range(since, nlaps + 1):
-            (color, bold) = lap_color(lap, nlaps)
+        for lap in range(since, self.n_laps + 1):
+            (color, bold) = lap_color(lap, self.n_laps)
             font = self.ui_state['fonts']['bold' if bold else 'data'][0]
             self.lc_canvas.itemconfigure("lead_%d_text" % lap, font=font, fill=color)
 
