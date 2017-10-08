@@ -316,17 +316,18 @@ class ColorListWidget(tk.Frame):
         self.refresh()
 
     def refresh(self):
-        if len(self._swatches) < len(self._colors):
+        ncolors = 1 if self._single else len(self._colors)
+        if len(self._swatches) < ncolors:
             self._swatches.extend([
                 self.canvas.create_rectangle(
                     self._itemwidth * i + 1, 1,
                     self._itemwidth * (i+1) + 1, self._height + 1)
-                for i in range(len(self._swatches), len(self._colors))
+                for i in range(len(self._swatches), ncolors)
                 ])
-        if len(self._swatches) > len(self._colors):
-            for swatch in self._swatches[len(self._colors):]:
+        if len(self._swatches) > ncolors:
+            for swatch in self._swatches[ncolors:]:
                 self.canvas.delete(swatch)
-            del self._swatches[len(self._colors):]
+            del self._swatches[ncolors:]
         self.canvas.config(width=len(self._swatches) * self._itemwidth + 1)
         for color, swatch in zip(self._colors, self._swatches):
             self.canvas.itemconfigure(swatch, fill=color)
