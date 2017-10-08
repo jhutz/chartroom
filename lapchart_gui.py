@@ -380,7 +380,7 @@ class LapChartWindow(tk.Toplevel):
 
         self.control_frame = tk.Frame(self)
         self.control_frame.grid(sticky=FILL_PARENT)
-        self.control_frame.columnconfigure(3, weight=1)
+        self.control_frame.columnconfigure(4, weight=1)
         self.chart_frame = LapChartFrame(self, data, self.ui_state)
         self.chart_frame.grid(sticky=FILL_PARENT)
 
@@ -401,13 +401,14 @@ class LapChartWindow(tk.Toplevel):
         self.hl_saved = config.def_highlight
         self.hl_saved_items = { x[0]:'' for x in highlights }
 
-        tk.Label(self.control_frame, text="Shade:").grid(row=0, column=4)
+        tk.Label(self.control_frame, text="Shade:").grid(row=0, column=3)
         opts = [ x[1] for x in shadings ]
         self.shading_v = tk.StringVar()
         self.shading_v.set(shading_label[config.def_shading])
         self.shading_v.trace('w', lambda name, index, mode:
                 self.update_fills())
-        tk.OptionMenu(self.control_frame, self.shading_v, *opts).grid(row=0, column=5)
+        tk.OptionMenu(self.control_frame, self.shading_v, *opts).grid(
+                row=0, column=4, sticky=tk.W)
 
         self.menubar = tk.Menu(self)
         self.config(menu=self.menubar)
