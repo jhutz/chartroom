@@ -585,22 +585,6 @@ class LapChartGUI(tk.Tk):
 
         if not data and not files:
             first = self.newWindow()
-            first.data.add('10') # 1, 1
-            first.data.add('2',) # 1, 2
-            first.data.add('08') # 1, 3
-            first.data.add('55') # 1, 4
-            first.data.add('42') # 1, 5
-            first.data.add('10') # 2, 1
-            first.data.add('08') # 2, 2
-            first.data.add('2',) # 2, 3
-            first.data.add('55') # 2, 4
-            first.data.add('08') # 3, 1
-            first.data.add('42') # 2, 5
-            first.data.add('10') # 3, 2
-            first.data.add('2',) # 3, 3
-            first.data.add('55') # 3, 4
-            first.data.add('15', 1,15)
-            first.data.add('1', 14, 1)
 
     def zoom_in(self, event):
         it = event.widget.winfo_toplevel()
