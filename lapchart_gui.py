@@ -8,7 +8,7 @@ from data_file_io import load_file, save_data_file
 from data_file_io import FileFormatException
 from printing import save_ps
 from config_data import *
-from config_gui import PreferencesDialog, PropertyListDialog
+from config_gui import PreferencesDialog, PropertyListDialog, ColorListWidget
 
 cell_width  = 34
 cell_height = 20
@@ -380,7 +380,7 @@ class LapChartWindow(tk.Toplevel):
 
         self.control_frame = tk.Frame(self)
         self.control_frame.grid(sticky=FILL_PARENT)
-        self.control_frame.columnconfigure(4, weight=1)
+        self.control_frame.columnconfigure(5, weight=1)
         self.chart_frame = LapChartFrame(self, data, self.ui_state)
         self.chart_frame.grid(sticky=FILL_PARENT)
 
@@ -409,6 +409,10 @@ class LapChartWindow(tk.Toplevel):
                 self.update_fills())
         tk.OptionMenu(self.control_frame, self.shading_v, *opts).grid(
                 row=0, column=4, sticky=tk.W)
+        self.class_shades = ColorListWidget(self.control_frame, editable=False,
+                colors=config.class_colors, labels=data.classes())
+        self.class_shades.grid(row=0, column=5, sticky=tk.W)
+        self.class_shades.grid_remove()
 
         self.menubar = tk.Menu(self)
         self.config(menu=self.menubar)
@@ -470,6 +474,10 @@ class LapChartWindow(tk.Toplevel):
             items = self.hl_saved_items[self.ui_state['hl_mode']]
             self.highlight_items_v.set(items)
         self.ui_state['hl_list'] = items.replace(',',' ').split()
+        if self.ui_state['shading'] == SHADE_CLASS:
+            self.class_shades.grid()
+        else:
+            self.class_shades.grid_remove()
         self.chart_frame.update_fills()
 
     def update_coloring(self, since=1):
