@@ -294,10 +294,13 @@ class ColorListDialog(tk.Toplevel):
         self.closeWindow()
 
 class ColorListWidget(tk.Frame):
-    def __init__(self, master, colors, single=False, title='Color Editor',
+    def __init__(self, master, colors, labels=None,
+            single=False, editable=True, title='Color Editor',
             height=SWATCH_HEIGHT, itemwidth=SWATCH_WIDTH_SMALL, gui=None):
         self._colors = colors
+        self._labels = labels
         self._swatches = []
+        self._lbltext = []
         self._itemwidth = itemwidth
         self._height    = height
         self._single    = single
@@ -311,26 +314,47 @@ class ColorListWidget(tk.Frame):
 
         self.canvas = tk.Canvas(self, height=self._height + 1)
         self.canvas.grid(row=0, column=0, sticky=tk.EW)
-        button = tk.Button(self, width=6, text='Edit', command=self.editButton)
-        button.grid(row=0, column=1, sticky=tk.E)
+        if editable:
+            button = tk.Button(self, width=6, text='Edit',
+                    command=self.editButton)
+            button.grid(row=0, column=1, sticky=tk.E)
         self.refresh()
 
     def refresh(self):
-        ncolors = 1 if self._single else len(self._colors)
-        if len(self._swatches) < ncolors:
+        count = 1 if self._single else len(self._colors)
+        if self._labels is not None:
+            count = min(count, len(self._labels))
+
+        if len(self._swatches) < count:
             self._swatches.extend([
                 self.canvas.create_rectangle(
                     self._itemwidth * i + 1, 1,
                     self._itemwidth * (i+1) + 1, self._height + 1)
-                for i in range(len(self._swatches), ncolors)
+                for i in range(len(self._swatches), count)
                 ])
-        if len(self._swatches) > ncolors:
-            for swatch in self._swatches[ncolors:]:
+        if len(self._swatches) > count:
+            for swatch in self._swatches[count:]:
                 self.canvas.delete(swatch)
-            del self._swatches[ncolors:]
+            del self._swatches[count:]
+
         self.canvas.config(width=len(self._swatches) * self._itemwidth + 1)
         for color, swatch in zip(self._colors, self._swatches):
             self.canvas.itemconfigure(swatch, fill=color)
+
+        if self._labels is not None:
+            if len(self._lbltext) < count:
+                self._lbltext.extend([
+                    self.canvas.create_text(
+                        self._itemwidth * i + (self._itemwidth // 2) + 1,
+                        self._height // 2 + 1)
+                    for i in range(len(self._lbltext), count)
+                    ])
+            if len(self._lbltext) > count:
+                for lbl in self._lbltext[count:]:
+                    self.canvas.delete(lbl)
+                del self._lbltext[count:]
+            for label, lbltext in zip(self._labels, self._lbltext):
+                self.canvas.itemconfigure(lbltext, text=label)
 
     def editButton(self):
         if self._single:
