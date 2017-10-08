@@ -19,21 +19,23 @@ CHART_ORIGIN  = HEADER_ORIGIN - 7 * CELL_HEIGHT
 
 Fonts = {
         'TitleFont'     : ('Helvetica-Bold',      24),
+        'SubtitleFont'  : ('Helvetica-Bold',      18),
         'InfoFont'      : ('Helvetica-Condensed',  9),
         'ChartFont'     : ('Helvetica',            7),
         'ChartBoldFont' : ('Helvetica-Bold',       7),
         }
 
 Headers = [
-        # row  right  font     prop,       text
-        (   0, False, 'Title', None,       'Chart'),
-        (   2, False, 'Info',  'sanction', None),
-        (   3, False, 'Info',  'venue',    None),
-        (   4, False, 'Info',  'course',   None),
+        # row  right  font        prop,       text
+        (  -3, False, 'Subtitle', 'session',  None),
+        (   0, False, 'Title',    None,       'Chart'),
+        (   2, False, 'Info',     'sanction', None),
+        (   3, False, 'Info',     'venue',    None),
+        (   4, False, 'Info',     'course',   None),
 
-        (   0, True,  'Title', 'group',    None),
-        (   3, True,  'Info',  'time',     None),
-        (   4, True,  'Info',  'date',     None),
+        (   0, True,  'Title',    'group',    None),
+        (   3, True,  'Info',     'time',     None),
+        (   4, True,  'Info',     'date',     None),
         ]
 
 Images = [
@@ -132,7 +134,6 @@ def emit_one_page(data, output, pageno, first_lap, n_laps, top_pos, n_pos):
     lastfont = ''
     for (row, right, font, prop, default) in Headers:
         text = propval(data, prop, default)
-        print (prop,default,text)
         row_y = HEADER_ORIGIN - row * CELL_HEIGHT
         text_h = Fonts[font+'Font'][1]
         if font != lastfont:
