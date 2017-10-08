@@ -1,5 +1,5 @@
 import sys
-import os.path
+import os
 import re
 import time
 from config_data import config, CR_VERSION
@@ -38,13 +38,15 @@ Headers = [
         (   4, True,  'Info',     'date',     None),
         ]
 
+# XXX KLUDGE
+progdir=os.path.dirname(os.path.realpath(sys.argv[0]))
 Images = [
         # x,y are from top-left corner of page (None means use margin or center)
         # halign can be left/right/center (None means center)
         # valign can be top/bottom/center (None means center)
         #
         # x     y     halign    valign    scale  filename
-        ( None, 0,    'center', 'top',    0.70,  'logo.eps' ),
+        ( None, 0,    'center', 'top',    0.70,  progdir+'/logo.eps' ),
         ]
 
 def propval(data, prop, default=None):
