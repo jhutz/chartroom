@@ -611,6 +611,7 @@ class LapChartGUI(tk.Tk):
 
     def openFileDialog(self, event=None):
         path = tkFileDialog.askopenfilename( filetypes=[
+            ("ChartRoom Lap Chart", "*.crx"),
             ("Orbits Passings CSV", "*.csv"),
             ("Orbits Passings (tab-separated)", "*.txt"),
             ])
