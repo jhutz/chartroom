@@ -227,5 +227,8 @@ class chartdata:
             for k,v in code['props'].iteritems():
                 self.props[k] = v
         self._max_pos = max(len(lap) for lap in self.cells)
+        self._max_down = max(cell.laps_down()
+                for lap in self.cells
+                for cell in lap)
         for cell in [ cell for lap in self.cells for cell in lap if cell ]:
             cell.update_bars()
