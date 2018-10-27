@@ -81,6 +81,10 @@ class ChartRoomConfig:
                 '#fda', # orange
                 '#fcc', # red
                 '#fcf', # purple
+                '#bbb', '#8cd', '#ada', '#dda', '#db8', '#daa', '#dad',
+
+                '#ddd', '#aef', '#cfc', '#ffc', '#fda', '#fcc', '#fcf',
+                '#bbb', '#8cd', '#ada', '#dda', '#db8', '#daa', '#dad',
                 ]
 
     def load():
