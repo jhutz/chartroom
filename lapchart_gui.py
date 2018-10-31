@@ -3,6 +3,7 @@ import tkFont
 import tkFileDialog
 import tkMessageBox
 import os.path
+import Queue
 from lapchart_data import chartdata
 from data_file_io import load_file, save_data_file
 from data_file_io import FileFormatException
@@ -11,6 +12,7 @@ from config_data import *
 from config_gui import PreferencesDialog
 from color_gui import ColorListWidget
 from proplist_gui import PropertyListDialog
+from rmonitor import RMonitorRelay
 
 cell_width  = 34
 cell_height = 20
@@ -382,7 +384,7 @@ class LapChartWindow(tk.Toplevel):
 
         self.control_frame = tk.Frame(self)
         self.control_frame.grid(sticky=FILL_PARENT)
-        self.control_frame.columnconfigure(5, weight=1)
+        self.control_frame.columnconfigure(6, weight=1)
         self.chart_frame = LapChartFrame(self, data, self.ui_state)
         self.chart_frame.grid(sticky=FILL_PARENT)
 
@@ -415,6 +417,9 @@ class LapChartWindow(tk.Toplevel):
                 colors=config.class_colors, labels=data.classes())
         self.class_shades.grid(row=0, column=5, sticky=tk.W)
         self.class_shades.grid_remove()
+        self.hb_canvas = tk.Canvas(self.control_frame, width=25, height=20)
+        self.hb_obj = self.hb_canvas.create_oval(2, 0, 22, 20, width=0, fill='')
+        self.hb_canvas.grid(row=0, column=6, sticky=tk.E)
 
         self.menubar = tk.Menu(self)
         self.config(menu=self.menubar)
@@ -425,6 +430,7 @@ class LapChartWindow(tk.Toplevel):
                 accelerator="Ctrl+N")
         menu.add_command(label="Open...", command=self.master.openFileDialog,
                 accelerator="Ctrl+O")
+        menu.add_command(label="Connect...", command=self.connectRMonitor)
         menu.add_separator()
         menu.add_command(label="Save", command=self.saveOrSaveAs,
                 accelerator="Ctrl+S")
@@ -500,6 +506,10 @@ class LapChartWindow(tk.Toplevel):
     def getCell(self, lap, pos):
         return self.chart_frame.getCell(lap, pos)
 
+    def connectRMonitor(self):
+        relay = RMonitorRelay('192.168.10.15', 50000, self)
+        relay.start()
+
     def saveAsDialog(self):
         update_filename = False
         if self.filename is None:
@@ -558,6 +568,12 @@ class LapChartWindow(tk.Toplevel):
         self.destroy()
         self.master._deref()
 
+    def heartBeat(self, state):
+        self.hb_canvas.itemconfigure(self.hb_obj, fill='green' if state else 'red')
+
+    def enqueue(self, op, args):
+        self.master.enqueue(self, self.data, op, args)
+
 
 class LapChartGUI(tk.Tk):
     def __init__(self, files=[], data=None):
@@ -596,6 +612,30 @@ class LapChartGUI(tk.Tk):
 
         if not data and not files:
             first = self.newWindow()
+
+        self.queue = Queue.Queue()
+        self.after(100, self.process_queue)
+
+    def enqueue(self, win, data, op, args):
+        self.queue.put((win, data, op, args))
+
+    def process_queue(self):
+        try:
+            while True:
+                (win, data, op, args) = self.queue.get_nowait()
+                if op == 'hb':
+                    win.heartBeat(args[0])
+                elif op == 'add':
+                    (car_id, car_no, class_, lap, lead) = args
+                    car = data.car(car_id, car_no, create=True)
+                    car.car_no(car_no)
+                    if class_ is not None and class_ != '': car.class_(class_)
+                    if lap <= car.laps(): continue #XXX
+                    data.add(car_id, lap=lap, lead=lead)
+        except Queue.Empty:
+            pass
+        finally:
+            self.after(100, self.process_queue)
 
     def zoom_in(self, event):
         it = event.widget.winfo_toplevel()
