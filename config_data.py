@@ -1,5 +1,5 @@
 CR_VERSION = '0.1'
-CR_YEARS   = '2017'
+CR_YEARS   = '2017-2019'
 CR_AUTHOR  = 'Jeffrey Hutzelman'
 CR_URL     = ''
 CR_EMAIL   = 'jhutz@cmu.edu'
