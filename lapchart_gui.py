@@ -413,8 +413,9 @@ class LapChartWindow(tk.Toplevel):
                 self.update_fills())
         tk.OptionMenu(self.control_frame, self.shading_v, *opts).grid(
                 row=0, column=4, sticky=tk.W)
+        labels=data.classes() if data else []
         self.class_shades = ColorListWidget(self.control_frame, editable=False,
-                colors=config.class_colors, labels=data.classes())
+                colors=config.class_colors, labels=labels)
         self.class_shades.grid(row=0, column=5, sticky=tk.W)
         self.class_shades.grid_remove()
         self.hb_canvas = tk.Canvas(self.control_frame, width=25, height=20)
