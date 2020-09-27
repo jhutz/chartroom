@@ -41,9 +41,9 @@ class ChartRoomConfig:
 
         self.global_props = {}
         self.default_props = {
-                'sanction' : 'IDC-19-S',
-                'venue'    : 'VIRginia International Raceway',
-                'course'   : '3.27 Mile Full Course',
+                'sanction' : '20-N-8495',
+                'venue'    : 'Road America',
+                'course'   : '4.048 Mile Full Course',
                 }
 
         # Colors for lap coloring (traditional or rainbow modes)

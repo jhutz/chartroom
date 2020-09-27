@@ -272,7 +272,7 @@ PS_PROLOG = """
 /ChartModeFinal { ChartBoldFont setfont 1 0 1 setrgbcolor } def
 
 /inch {72 mul} def
-/logo_bbox {0 0 326 176} def  % Copy from logo EPS header
+/logo_bbox {0 0 324 206} def  % Copy from logo EPS header
 /logo_scale 0.70 def
 
 /BeginEPSF { %def
