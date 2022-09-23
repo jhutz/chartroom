@@ -46,7 +46,7 @@ Images = [
         # valign can be top/bottom/center (None means center)
         #
         # x     y     halign    valign    scale  filename
-        ( None, 20,    'center', 'top',    0.70,  progdir+'/logo.eps' ),
+        ( None, 12,    'center', 'top',    1.00,  progdir+'/logo.eps' ),
         ]
 
 def propval(data, prop, default=None):
@@ -272,8 +272,8 @@ PS_PROLOG = """
 /ChartModeFinal { ChartBoldFont setfont 1 0 1 setrgbcolor } def
 
 /inch {72 mul} def
-/logo_bbox {0 0 324 206} def  % Copy from logo EPS header
-/logo_scale 0.70 def
+/logo_bbox {0 0 275 98} def  % Copy from logo EPS header
+/logo_scale 0.20 def
 
 /BeginEPSF { %def
   /b4_Inc_state save def                % Save state for cleanup
