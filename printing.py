@@ -47,7 +47,7 @@ Images = [
         # valign can be top/bottom/center (None means center)
         #
         # x     y     halign    valign    scale  filename
-        ( None, 12,    'center', 'top',    1.00,  progdir+'/logo.eps' ),
+        ( None, 12,    'center', 'top',    0.55,  progdir+'/logo.eps' ),
         ]
 
 def propval(data, prop, default=None):

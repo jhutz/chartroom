@@ -41,7 +41,7 @@ class ChartRoomConfig:
 
         self.global_props = {}
         self.default_props = {
-                'sanction' : '22-RO-57298',
+                'sanction' : '23-RO-59555',
                 'venue'    : 'VIRginia International Raceway',
                 'course'   : '3.27 Mile Road Course',
                 }
