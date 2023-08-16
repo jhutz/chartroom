@@ -276,10 +276,6 @@ PS_PROLOG = """
 /ChartModeEven  { ChartBoldFont setfont 1 0 0 setrgbcolor } def
 /ChartModeFinal { ChartBoldFont setfont 1 0 1 setrgbcolor } def
 
-/inch {72 mul} def
-/logo_bbox {0 0 275 98} def  % Copy from logo EPS header
-/logo_scale 0.20 def
-
 /BeginEPSF { %def
   /b4_Inc_state save def                % Save state for cleanup
   /dict_count countdictstack def        % Count objects on dict stack
