@@ -4,6 +4,7 @@ import tkFileDialog
 import tkMessageBox
 import os.path
 import Queue
+from warnings import warn
 from lapchart_data import chartdata
 from data_file_io import load_file, save_data_file
 from data_file_io import FileFormatException
@@ -609,7 +610,7 @@ class LapChartGUI(tk.Tk):
             try:
                 self.openFile(file)
             except (FileFormatException, IOError) as e:
-                warn("%s: %s" % file, e)
+                warn("%s: %s" % (file, e))
 
         if not data and not files:
             first = self.newWindow()
