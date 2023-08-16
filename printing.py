@@ -2,6 +2,7 @@ import sys
 import os
 import re
 import time
+import codecs, struct
 from config_data import config, CR_VERSION
 
 ## All dimensions in points
@@ -82,8 +83,12 @@ def bbox_union(a, b):
 
 
 def place_image(output, x0, y0, halign, valign, scale, path):
-    with open(path, 'r') as imgfile:
+    with open(path, 'rb') as imgfile:
         data = imgfile.read()
+    if data.startswith(codecs.decode('C5D0D3C6', 'hex')):
+        (ps_off, ps_len) = struct.unpack_from('<II', data, offset=4)
+        data = data[ps_off:ps_off+ps_len]
+
     match = re.search(r'(?im)^\%\%BoundingBox:\s*(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s*$', data)
     if not match:
         print '%s: no bbox' % path
