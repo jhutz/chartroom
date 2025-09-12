@@ -41,7 +41,7 @@ class ChartRoomConfig:
 
         self.global_props = {}
         self.default_props = {
-                'sanction' : '24-RO-62865',
+                'sanction' : '25-RO-64086',
                 'venue'    : 'Road America',
                 'course'   : '4.048 Mile Course',
                 }
