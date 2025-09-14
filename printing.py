@@ -3,7 +3,9 @@ import os
 import re
 import time
 import codecs, struct
+import itertools
 from config_data import config, CR_VERSION
+from pprint import pprint
 
 ## All dimensions in points
 PAGE_WIDTH    = 8.5 * 72
@@ -25,6 +27,20 @@ Fonts = {
         'ChartFont'     : ('Helvetica',            7),
         'ChartBoldFont' : ('Helvetica-Bold',       7),
         }
+
+Colors = [
+    (0.0, 0.0, 0.0), # Black
+    (0.8, 0.3, 0.0), # Brown?
+    (1.0, 0.0, 0.0), # Red
+    (1.0, 0.5, 0.0), # Orange
+    (0.0, 0.6, 0.0), # Green
+    (0.0, 0.0, 1.0), # Blue
+    (1.0, 0.0, 1.0), # Violet
+    (0.7, 0.0, 0.8), # Purple
+    (0.5, 0.5, 0.5), # Grey
+  ]
+
+Dashes = [ (), (3,), (3, 1, 1, 1), (1,) ]
 
 Headers = [
         # row  right  font        prop,       text
@@ -191,7 +207,10 @@ def emit_one_page(data, output, pageno, first_lap, n_laps, top_pos, n_pos, graph
     output.write('ChartModePlain\n')
     mode = "Plain"
     max_time = float(n_pos) # XXX longest leader-diff-time of any car on any lap
-    last_lap = dict()
+    if graph:
+        last_lap = dict()
+        car_color = dict()
+        colors = itertools.cycle(itertools.product(Dashes, Colors))
     for lap in range(n_laps):
         cell_x = MARGIN_LEFT + (lap + 1) * CELL_WIDTH
 
@@ -206,8 +225,17 @@ def emit_one_page(data, output, pageno, first_lap, n_laps, top_pos, n_pos, graph
             cell = data.lookup(first_lap + lap, top_pos + pos)
             lead = cell.lead()
             bars = cell.bars()
+            car_id = cell.car()
 
-            if not graph or not lap:
+            if graph:
+                if car_id not in car_color:
+                    car_color[car_id] = next(colors)
+                (pat, color) = car_color[car_id]
+                pat = '[' + ' '.join((str(x) for x in pat)) + ']'
+                output.write("%.2f %.2f %.2f setrgbcolor\n" % color)
+                output.write("%s 0 setdash\n" % pat)
+
+            if not graph:
                 if lead == laps: newmode = "Final"
                 elif lead % 5:   newmode = "Plain"
                 elif lead % 10:  newmode = "Odd"
@@ -218,13 +246,18 @@ def emit_one_page(data, output, pageno, first_lap, n_laps, top_pos, n_pos, graph
                 output.write('(%s) %d %d center %d moveto show\n' % (
                     ps_string(cell.car().car_no()),
                     cell_x, CELL_WIDTH, cell_y))
+            elif not lap:
+                output.write('(%s) %d %d center %d moveto show\n' % (
+                    ps_string(cell.car().car_no()),
+                    MARGIN_LEFT, CELL_WIDTH, cell_y))
+
             if graph:
                 dot_x = cell_x + (CELL_WIDTH / 2)
                 output.write('%d %d dot\n' % (dot_x, cell_y))
-                if cell.car() in last_lap:
+                if car_id in last_lap:
                     output.write('%d %d moveto %d %d lineto stroke\n'
-                      % (last_lap[cell.car()][0], last_lap[cell.car()][1], dot_x, cell_y))
-                last_lap[cell.car()] = (dot_x, cell_y)
+                      % (last_lap[car_id][0], last_lap[car_id][1], dot_x, cell_y))
+                last_lap[car_id] = (dot_x, cell_y)
             else:
                 if bars[0] and bars[1]:
                     output.write('%d %d moveto %d %d lineto %d %d lineto stroke\n' % (
