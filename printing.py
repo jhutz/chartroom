@@ -124,7 +124,7 @@ def place_image(output, x0, y0, halign, valign, scale, path):
     output.write('EndEPSF\n')
     return (x0, y0, x0 + width, y0 + height)
 
-def emit_one_page(data, output, pageno, first_lap, n_laps, top_pos, n_pos):
+def emit_one_page(data, output, pageno, first_lap, n_laps, top_pos, n_pos, graph=False):
     page_bbox = (MARGIN_LEFT, None, None, PAGE_HEIGHT - MARGIN_TOP)
 
     output.write('%%%%Page: %d %d\n' % (pageno, pageno))
@@ -167,7 +167,8 @@ def emit_one_page(data, output, pageno, first_lap, n_laps, top_pos, n_pos):
     output.write('ChartBoldFont setfont\n')
     output.write('(Laps) %d %d moveto show\n' % (
         MARGIN_LEFT + CELL_WIDTH, CHART_ORIGIN + CELL_HEIGHT))
-    output.write('(Pos) %d %d moveto show\n' % (MARGIN_LEFT, CHART_ORIGIN))
+    if not graph:
+        output.write('(Pos) %d %d moveto show\n' % (MARGIN_LEFT, CHART_ORIGIN))
     x0 = MARGIN_LEFT + CELL_WIDTH               + FRAME_OFFSET
     y0 = CHART_ORIGIN                           - FRAME_OFFSET
     x1 = MARGIN_LEFT  + CELL_WIDTH * (n_laps+1) + FRAME_OFFSET
@@ -179,61 +180,77 @@ def emit_one_page(data, output, pageno, first_lap, n_laps, top_pos, n_pos):
         cell_x = MARGIN_LEFT + (lap + 1) * CELL_WIDTH
         output.write('(%d) %d %d center %d moveto show\n' % (
             first_lap + lap, cell_x, CELL_WIDTH, CHART_ORIGIN))
-    for pos in range(n_pos):
-        cell_y = CHART_ORIGIN - (pos + 1) * CELL_HEIGHT
-        output.write('(%d) %d ralign %d moveto show\n' % (
-            top_pos + pos, MARGIN_LEFT + CELL_WIDTH, cell_y))
+    if not graph:
+        for pos in range(n_pos):
+            cell_y = CHART_ORIGIN - (pos + 1) * CELL_HEIGHT
+            output.write('(%d) %d ralign %d moveto show\n' % (
+                top_pos + pos, MARGIN_LEFT + CELL_WIDTH, cell_y))
 
     # laps
     laps = data.num_laps()
     output.write('ChartModePlain\n')
     mode = "Plain"
+    max_time = float(n_pos) # XXX longest leader-diff-time of any car on any lap
+    last_lap = dict()
     for lap in range(n_laps):
         cell_x = MARGIN_LEFT + (lap + 1) * CELL_WIDTH
 
         last_pos = min(n_pos, data.max_pos(first_lap + lap) - top_pos + 1)
         if last_pos <= 0: continue
         for pos in range(last_pos):
-            cell_y = CHART_ORIGIN - (pos + 1) * CELL_HEIGHT
+            if graph:
+                t = float(pos + 1) # XXX car's time - lead car's time
+                cell_y = CHART_ORIGIN - int((t / max_time) * n_pos * CELL_HEIGHT)
+            else:
+                cell_y = CHART_ORIGIN - (pos + 1) * CELL_HEIGHT
             cell = data.lookup(first_lap + lap, top_pos + pos)
             lead = cell.lead()
             bars = cell.bars()
 
-            if lead == laps: newmode = "Final"
-            elif lead % 5:   newmode = "Plain"
-            elif lead % 10:  newmode = "Odd"
-            else:            newmode = "Even"
-            if mode != newmode:
-                output.write("ChartMode%s\n" % newmode)
-                mode = newmode
-            output.write('(%s) %d %d center %d moveto show\n' % (
-                ps_string(cell.car().car_no()),
-                cell_x, CELL_WIDTH, cell_y))
-            if bars[0] and bars[1]:
-                output.write('%d %d moveto %d %d lineto %d %d lineto stroke\n' % (
-                    cell_x + FRAME_OFFSET,
-                    cell_y - FRAME_OFFSET,
-                    cell_x + FRAME_OFFSET,
-                    cell_y - FRAME_OFFSET + CELL_HEIGHT,
-                    cell_x + FRAME_OFFSET + CELL_WIDTH,
-                    cell_y - FRAME_OFFSET + CELL_HEIGHT))
-            elif bars[0]:
-                output.write('%d %d moveto %d %d lineto stroke\n' % (
-                    cell_x + FRAME_OFFSET,
-                    cell_y - FRAME_OFFSET + CELL_HEIGHT,
-                    cell_x + FRAME_OFFSET + CELL_WIDTH,
-                    cell_y - FRAME_OFFSET + CELL_HEIGHT))
-            elif bars[1]:
-                output.write('%d %d moveto %d %d lineto stroke\n' % (
-                    cell_x + FRAME_OFFSET,
-                    cell_y - FRAME_OFFSET,
-                    cell_x + FRAME_OFFSET,
-                    cell_y - FRAME_OFFSET + CELL_HEIGHT))
+            if not graph or not lap:
+                if lead == laps: newmode = "Final"
+                elif lead % 5:   newmode = "Plain"
+                elif lead % 10:  newmode = "Odd"
+                else:            newmode = "Even"
+                if mode != newmode:
+                    output.write("ChartMode%s\n" % newmode)
+                    mode = newmode
+                output.write('(%s) %d %d center %d moveto show\n' % (
+                    ps_string(cell.car().car_no()),
+                    cell_x, CELL_WIDTH, cell_y))
+            if graph:
+                dot_x = cell_x + (CELL_WIDTH / 2)
+                output.write('%d %d dot\n' % (dot_x, cell_y))
+                if cell.car() in last_lap:
+                    output.write('%d %d moveto %d %d lineto stroke\n'
+                      % (last_lap[cell.car()][0], last_lap[cell.car()][1], dot_x, cell_y))
+                last_lap[cell.car()] = (dot_x, cell_y)
+            else:
+                if bars[0] and bars[1]:
+                    output.write('%d %d moveto %d %d lineto %d %d lineto stroke\n' % (
+                        cell_x + FRAME_OFFSET,
+                        cell_y - FRAME_OFFSET,
+                        cell_x + FRAME_OFFSET,
+                        cell_y - FRAME_OFFSET + CELL_HEIGHT,
+                        cell_x + FRAME_OFFSET + CELL_WIDTH,
+                        cell_y - FRAME_OFFSET + CELL_HEIGHT))
+                elif bars[0]:
+                    output.write('%d %d moveto %d %d lineto stroke\n' % (
+                        cell_x + FRAME_OFFSET,
+                        cell_y - FRAME_OFFSET + CELL_HEIGHT,
+                        cell_x + FRAME_OFFSET + CELL_WIDTH,
+                        cell_y - FRAME_OFFSET + CELL_HEIGHT))
+                elif bars[1]:
+                    output.write('%d %d moveto %d %d lineto stroke\n' % (
+                        cell_x + FRAME_OFFSET,
+                        cell_y - FRAME_OFFSET,
+                        cell_x + FRAME_OFFSET,
+                        cell_y - FRAME_OFFSET + CELL_HEIGHT))
     output.write('showpage\n\n')
     return page_bbox
 
 
-def save_ps(data, path):
+def save_ps(data, path, graph=False):
     fontfaces = { x[0] for x in Fonts.values() }
     doc_bbox = (None, None, None, None)
 
@@ -261,7 +278,7 @@ def save_ps(data, path):
             output.write('/%s /%s findfont %d scalefont def\n' % (name, font[0], font[1]))
         output.write('%%EndSetup\n')
 
-        page_bbox = emit_one_page(data, output, 1, 1, data.num_laps(), 1, data.max_pos())
+        page_bbox = emit_one_page(data, output, 1, 1, data.num_laps(), 1, data.max_pos(), graph=graph)
         doc_bbox = bbox_union(doc_bbox, page_bbox)
         output.write('%%Trailer\n')
         output.write('%%%%Pages: %d\n' % 1)
@@ -271,6 +288,8 @@ def save_ps(data, path):
 PS_PROLOG = """
 /ralign { 1 index stringwidth pop sub } def
 /center { 2 index stringwidth pop sub 2 div add } def
+/circle { 0 360 arc closepath } def
+/dot { currentlinewidth 1.5 mul circle fill } def
 /ChartModePlain { ChartFont     setfont 0 setgray } def
 /ChartModeOdd   { ChartBoldFont setfont 0 0 1 setrgbcolor } def
 /ChartModeEven  { ChartBoldFont setfont 1 0 0 setrgbcolor } def
