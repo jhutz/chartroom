@@ -441,6 +441,8 @@ class LapChartWindow(tk.Toplevel):
         menu.add_command(label="Print to file...",
                 command=self.printFileDialog,
                 accelerator="Ctrl+P")
+        menu.add_command(label="Print graph...",
+                command=self.printGraphDialog)
         menu.add_separator()
         menu.add_command(label="Close", command=self.closeWindow,
                 accelerator="Ctrl+W")
@@ -563,6 +565,23 @@ class LapChartWindow(tk.Toplevel):
         if path:
             save_ps(self.data, path)
 
+    def printGraphDialog(self):
+        if self.filename is not None:
+            defdir  = os.path.dirname(self.filename)
+            defpath = os.path.splitext(self.filename)[0] + '-graph.ps'
+            path = tkFileDialog.asksaveasfilename(
+                    parent = self, title = 'Print Graph to File',
+                    initialdir = defdir, initialfile = defpath,
+                    defaultextension='.ps',
+                    filetypes=[("PostScript", "*.ps")])
+        else:
+            path = tkFileDialog.asksaveasfilename(
+                    parent = self, title = 'Print Graph to File',
+                    defaultextension='.ps',
+                    filetypes=[("PostScript", "*.ps")])
+        if path:
+            save_ps(self.data, path, graph=True)
+
     def editProps(self):
         PropertyListDialog(self.data.props, 'Properties')
 
@@ -677,6 +696,10 @@ class LapChartGUI(tk.Tk):
     def printFileDialog(self, event):
         it = event.widget.winfo_toplevel()
         if hasattr(it, 'printFileDialog'): it.printFileDialog()
+
+    def printGraphDialog(self, event):
+        it = event.widget.winfo_toplevel()
+        if hasattr(it, 'printGraphDialog'): it.printGraphDialog()
 
     def closeWindow(self, event):
         it = event.widget.winfo_toplevel()
