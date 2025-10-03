@@ -19,6 +19,7 @@ CELL_HEIGHT   = 8.5
 FRAME_OFFSET  = 2
 HEADER_ORIGIN = PAGE_HEIGHT - MARGIN_TOP - 59.5
 CHART_ORIGIN  = HEADER_ORIGIN - 7 * CELL_HEIGHT
+CHART_TITLE   = object()
 
 Fonts = {
         'TitleFont'     : ('Helvetica-Bold',      24),
@@ -45,7 +46,7 @@ Dashes = [ (), (3,), (3, 1, 1, 1), (1,) ]
 Headers = [
         # row  right  font        prop,       text
         (  -3, False, 'Subtitle', 'session',  None),
-        (   0, False, 'Title',    None,       'Chart'),
+        (   0, False, 'Title',    None,       CHART_TITLE),
         (   2, False, 'Info',     'sanction', None),
         (   3, False, 'Info',     'venue',    None),
         (   4, False, 'Info',     'course',   None),
@@ -157,6 +158,8 @@ def emit_one_page(data, output, pageno, first_lap, n_laps, top_pos, n_pos, graph
     lastfont = ''
     for (row, right, font, prop, default) in Headers:
         text = propval(data, prop, default)
+        if text is CHART_TITLE:
+            text = 'Graph' if graph else 'Chart'
         row_y = HEADER_ORIGIN - row * CELL_HEIGHT
         text_h = Fonts[font+'Font'][1]
         if font != lastfont:
