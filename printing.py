@@ -141,7 +141,8 @@ def place_image(output, x0, y0, halign, valign, scale, path):
     output.write('EndEPSF\n')
     return (x0, y0, x0 + width, y0 + height)
 
-def emit_one_page(data, output, pageno, first_lap, n_laps, top_pos, n_pos, graph=False):
+def emit_one_page(data, output, pageno, first_lap, n_laps, top_pos, n_pos,
+  graph=False, timescale=False):
     page_bbox = (MARGIN_LEFT, None, None, PAGE_HEIGHT - MARGIN_TOP)
 
     output.write('%%%%Page: %d %d\n' % (pageno, pageno))
@@ -180,7 +181,7 @@ def emit_one_page(data, output, pageno, first_lap, n_laps, top_pos, n_pos, graph
 
     if graph:
         x_size  = PAGE_WIDTH - (MARGIN_LEFT + CELL_WIDTH + MARGIN_RIGHT)
-        y_size  = CHART_ORIGIN - MARGIN_BOTTOM
+        y_size  = CHART_ORIGIN - MARGIN_BOTTOM - CELL_HEIGHT / 2
         lap_width = x_size // n_laps
         row_height = y_size // n_pos
         if (row_height / CELL_HEIGHT) > 3:
@@ -220,7 +221,7 @@ def emit_one_page(data, output, pageno, first_lap, n_laps, top_pos, n_pos, graph
     laps = data.num_laps()
     output.write('ChartModePlain\n')
     mode = "Plain"
-    max_time = float(n_pos) # XXX longest leader-diff-time of any car on any lap
+    max_time = data.max_behind().total_seconds() if timescale else None
     if graph:
         last_lap = dict()
         car_color = dict()
@@ -231,15 +232,15 @@ def emit_one_page(data, output, pageno, first_lap, n_laps, top_pos, n_pos, graph
         last_pos = min(n_pos, data.max_pos(first_lap + lap) - top_pos + 1)
         if last_pos <= 0: continue
         for pos in range(last_pos):
-            if graph:
-                t = float(pos + 1) # XXX car's time - lead car's time
-                cell_y = CHART_ORIGIN - int((t / max_time) * n_pos * row_height)
-            else:
-                cell_y = CHART_ORIGIN - (pos + 1) * row_height
             cell = data.lookup(first_lap + lap, top_pos + pos)
             lead = cell.lead()
             bars = cell.bars()
             car_id = cell.car()
+            if graph and max_time and cell.behind:
+                t = cell.behind.total_seconds()
+                cell_y = CHART_ORIGIN - int((t / max_time) * n_pos * row_height) - CELL_HEIGHT / 2
+            else:
+                cell_y = CHART_ORIGIN - (pos + 1) * row_height
 
             if graph:
                 if car_id not in car_color:
@@ -297,7 +298,7 @@ def emit_one_page(data, output, pageno, first_lap, n_laps, top_pos, n_pos, graph
     return page_bbox
 
 
-def save_ps(data, path, graph=False):
+def save_ps(data, path, graph=False, timescale=False):
     fontfaces = { x[0] for x in Fonts.values() }
     doc_bbox = (None, None, None, None)
 
@@ -325,7 +326,8 @@ def save_ps(data, path, graph=False):
             output.write('/%s /%s findfont %d scalefont def\n' % (name, font[0], font[1]))
         output.write('%%EndSetup\n')
 
-        page_bbox = emit_one_page(data, output, 1, 1, data.num_laps(), 1, data.max_pos(), graph=graph)
+        page_bbox = emit_one_page(data, output, 1, 1, data.num_laps(), 1, data.max_pos(),
+          graph=graph, timescale=timescale)
         doc_bbox = bbox_union(doc_bbox, page_bbox)
         output.write('%%Trailer\n')
         output.write('%%%%Pages: %d\n' % 1)
