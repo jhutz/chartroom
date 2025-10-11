@@ -1,4 +1,5 @@
 from config_data import config
+from datetime import datetime
 
 class chartcar:
     def __init__(self, parent, car_id, car_no='??'):
@@ -56,6 +57,8 @@ class chartdatacell:
     def _reset(self):
         self._car = None
         self._lead = None
+        self._ptime = None
+        self.behind = None
         self.bar_above = False
         self.bar_left = False
 
@@ -103,6 +106,26 @@ class chartdatacell:
             if other_cell: other_cell.update_bars()
         return self._lead
 
+    def ptime(self, val=None):
+        if val is not None:
+            if isinstance(val, (str, unicode)):
+                try:
+                    val = datetime.strptime(val, '%H:%M:%S.%f')
+                except:
+                    return self._ptime
+            self._ptime = val
+        return self._ptime
+
+    def update_behind(self):
+        self.behind = None
+        if not self._ptime: return
+        other_cell = self.parent.lookup(self.lap, 1)
+        if not other_cell: return
+        other_ptime = other_cell.ptime()
+        if other_ptime and self._ptime >= other_ptime:
+            self.behind = self._ptime - other_ptime
+            self.parent.behind(self.behind)
+
     def laps_down(self):
         if self._lead is None: return None
         return self._lead - self.lap
@@ -111,13 +134,16 @@ class chartdatacell:
         return (self.bar_above, self.bar_left)
 
     def encode(self):
-        return (self._car.id, self._lead)
+        return (self._car.id, self._lead,
+          self._ptime.strftime('%H:%M:%S.%f') if self._ptime else None)
 
     def decode(self, code):
         self._car = self.parent.car(code[0])
         self._lead = code[1]
         if self.lap > self._car.laps():
             self._car.laps(self.lap)
+        if len(code) > 2:
+            self.ptime(code[2])
         return self
 
 
@@ -129,6 +155,7 @@ class chartdata:
         self.cells = []
         self._max_pos = 0
         self._max_down = 0
+        self._max_behind = None
         self._classes = []
 
     def car(self, car_id, car_no='??', create=False):
@@ -149,6 +176,14 @@ class chartdata:
     def max_down(self):
         return self._max_down
 
+    def max_behind(self):
+        return self._max_behind
+
+    def behind(self, val=None):
+        if (val is not None and
+          (self._max_behind is None or val > self._max_behind)):
+            self._max_behind = val
+
     def classes(self): return self._classes
 
     def add_class(self, class_):
@@ -165,7 +200,7 @@ class chartdata:
         if pos > len(self.cells[lap-1]): return None
         return self.cells[lap-1][pos-1]
 
-    def add(self, car_id, lap=None, pos=None, lead=None):
+    def add(self, car_id, lap=None, pos=None, lead=None, ptime=None):
         car = self.car(car_id, car_no=car_id, create=True)
 
         # Determine lap and make sure we have enough columns
@@ -200,6 +235,9 @@ class chartdata:
         cell = self.cells[lap-1][pos-1]
         cell.car(car)
         cell.lead(lead)
+        if ptime is not None:
+            cell.ptime(ptime)
+            cell.update_behind()
 
     def refresh_gui_for_car(self, car):
         # Refresh all GUI cells containing a car
@@ -241,3 +279,4 @@ class chartdata:
                 for cell in lap)
         for cell in [ cell for lap in self.cells for cell in lap if cell ]:
             cell.update_bars()
+            cell.update_behind()

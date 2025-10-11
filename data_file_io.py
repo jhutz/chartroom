@@ -38,7 +38,7 @@ def _process_passings(data, reader, filename):
         car.car_no(car_no)
         if class_ != '': car.class_(class_)
         if lap <= car.laps(): continue
-        data.add(car_id, lap=lap, lead=lead)
+        data.add(car_id, lap=lap, lead=lead, ptime=row.get('Passing Tm'))
 
 def load_passings_txt(data, F, filename):
     reader = csv.DictReader(F, delimiter='\t', quoting=csv.QUOTE_NONE)
