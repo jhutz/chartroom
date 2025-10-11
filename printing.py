@@ -180,9 +180,14 @@ def emit_one_page(data, output, pageno, first_lap, n_laps, top_pos, n_pos, graph
 
     if graph:
         x_size  = PAGE_WIDTH - (MARGIN_LEFT + CELL_WIDTH + MARGIN_RIGHT)
+        y_size  = CHART_ORIGIN - MARGIN_BOTTOM
         lap_width = x_size // n_laps
+        row_height = y_size // n_pos
+        if (row_height / CELL_HEIGHT) > 3:
+            row_height = CELL_HEIGHT * 3
     else:
         lap_width = CELL_WIDTH
+        row_height = CELL_HEIGHT
 
     # Column/Row headers
     # Including the frame in the page bbox covers all the chart's contents,
@@ -197,7 +202,7 @@ def emit_one_page(data, output, pageno, first_lap, n_laps, top_pos, n_pos, graph
     x0 = MARGIN_LEFT + CELL_WIDTH               + FRAME_OFFSET
     y0 = CHART_ORIGIN                           - FRAME_OFFSET
     x1 = MARGIN_LEFT  + CELL_WIDTH + lap_width * n_laps + FRAME_OFFSET
-    y1 = CHART_ORIGIN - CELL_HEIGHT * n_pos     - FRAME_OFFSET
+    y1 = CHART_ORIGIN - row_height * n_pos      - FRAME_OFFSET
     output.write('%d %d moveto %d %d lineto %d %d lineto stroke\n' %
             (x0, y1, x0, y0, x1, y0))
     page_bbox = bbox_union(page_bbox, (x0, y1, x1, y0))
@@ -207,7 +212,7 @@ def emit_one_page(data, output, pageno, first_lap, n_laps, top_pos, n_pos, graph
             first_lap + lap, cell_x, lap_width, CHART_ORIGIN))
     if not graph:
         for pos in range(n_pos):
-            cell_y = CHART_ORIGIN - (pos + 1) * CELL_HEIGHT
+            cell_y = CHART_ORIGIN - (pos + 1) * row_height
             output.write('(%d) %d ralign %d moveto show\n' % (
                 top_pos + pos, MARGIN_LEFT + CELL_WIDTH, cell_y))
 
@@ -228,9 +233,9 @@ def emit_one_page(data, output, pageno, first_lap, n_laps, top_pos, n_pos, graph
         for pos in range(last_pos):
             if graph:
                 t = float(pos + 1) # XXX car's time - lead car's time
-                cell_y = CHART_ORIGIN - int((t / max_time) * n_pos * CELL_HEIGHT)
+                cell_y = CHART_ORIGIN - int((t / max_time) * n_pos * row_height)
             else:
-                cell_y = CHART_ORIGIN - (pos + 1) * CELL_HEIGHT
+                cell_y = CHART_ORIGIN - (pos + 1) * row_height
             cell = data.lookup(first_lap + lap, top_pos + pos)
             lead = cell.lead()
             bars = cell.bars()
@@ -273,21 +278,21 @@ def emit_one_page(data, output, pageno, first_lap, n_laps, top_pos, n_pos, graph
                         cell_x + FRAME_OFFSET,
                         cell_y - FRAME_OFFSET,
                         cell_x + FRAME_OFFSET,
-                        cell_y - FRAME_OFFSET + CELL_HEIGHT,
+                        cell_y - FRAME_OFFSET + row_height,
                         cell_x + FRAME_OFFSET + lap_width,
-                        cell_y - FRAME_OFFSET + CELL_HEIGHT))
+                        cell_y - FRAME_OFFSET + row_height))
                 elif bars[0]:
                     output.write('%d %d moveto %d %d lineto stroke\n' % (
                         cell_x + FRAME_OFFSET,
-                        cell_y - FRAME_OFFSET + CELL_HEIGHT,
+                        cell_y - FRAME_OFFSET + row_height,
                         cell_x + FRAME_OFFSET + lap_width,
-                        cell_y - FRAME_OFFSET + CELL_HEIGHT))
+                        cell_y - FRAME_OFFSET + row_height))
                 elif bars[1]:
                     output.write('%d %d moveto %d %d lineto stroke\n' % (
                         cell_x + FRAME_OFFSET,
                         cell_y - FRAME_OFFSET,
                         cell_x + FRAME_OFFSET,
-                        cell_y - FRAME_OFFSET + CELL_HEIGHT))
+                        cell_y - FRAME_OFFSET + row_height))
     output.write('showpage\n\n')
     return page_bbox
 
