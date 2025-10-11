@@ -256,7 +256,7 @@ def emit_one_page(data, output, pageno, first_lap, n_laps, top_pos, n_pos, graph
                     ps_string(cell.car().car_no()),
                     cell_x, lap_width, cell_y))
             elif not lap:
-                output.write('(%s) %d %d center %d moveto show\n' % (
+                output.write('(%s) %d %d center %d moveto show newpath\n' % (
                     ps_string(cell.car().car_no()),
                     MARGIN_LEFT, CELL_WIDTH, cell_y))
 
