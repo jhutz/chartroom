@@ -178,6 +178,12 @@ def emit_one_page(data, output, pageno, first_lap, n_laps, top_pos, n_pos, graph
         bbox = place_image(output, *img)
         page_bbox = bbox_union(page_bbox, bbox)
 
+    if graph:
+        x_size  = PAGE_WIDTH - (MARGIN_LEFT + CELL_WIDTH + MARGIN_RIGHT)
+        lap_width = x_size // n_laps
+    else:
+        lap_width = CELL_WIDTH
+
     # Column/Row headers
     # Including the frame in the page bbox covers all the chart's contents,
     # the width of the lap headers, and the height of the row headers. The
@@ -190,15 +196,15 @@ def emit_one_page(data, output, pageno, first_lap, n_laps, top_pos, n_pos, graph
         output.write('(Pos) %d %d moveto show\n' % (MARGIN_LEFT, CHART_ORIGIN))
     x0 = MARGIN_LEFT + CELL_WIDTH               + FRAME_OFFSET
     y0 = CHART_ORIGIN                           - FRAME_OFFSET
-    x1 = MARGIN_LEFT  + CELL_WIDTH * (n_laps+1) + FRAME_OFFSET
+    x1 = MARGIN_LEFT  + CELL_WIDTH + lap_width * n_laps + FRAME_OFFSET
     y1 = CHART_ORIGIN - CELL_HEIGHT * n_pos     - FRAME_OFFSET
     output.write('%d %d moveto %d %d lineto %d %d lineto stroke\n' %
             (x0, y1, x0, y0, x1, y0))
     page_bbox = bbox_union(page_bbox, (x0, y1, x1, y0))
     for lap in range(n_laps):
-        cell_x = MARGIN_LEFT + (lap + 1) * CELL_WIDTH
+        cell_x = MARGIN_LEFT + CELL_WIDTH + lap * lap_width
         output.write('(%d) %d %d center %d moveto show\n' % (
-            first_lap + lap, cell_x, CELL_WIDTH, CHART_ORIGIN))
+            first_lap + lap, cell_x, lap_width, CHART_ORIGIN))
     if not graph:
         for pos in range(n_pos):
             cell_y = CHART_ORIGIN - (pos + 1) * CELL_HEIGHT
@@ -215,7 +221,7 @@ def emit_one_page(data, output, pageno, first_lap, n_laps, top_pos, n_pos, graph
         car_color = dict()
         colors = itertools.cycle(itertools.product(Dashes, Colors))
     for lap in range(n_laps):
-        cell_x = MARGIN_LEFT + (lap + 1) * CELL_WIDTH
+        cell_x = MARGIN_LEFT + CELL_WIDTH + lap * lap_width
 
         last_pos = min(n_pos, data.max_pos(first_lap + lap) - top_pos + 1)
         if last_pos <= 0: continue
@@ -248,14 +254,14 @@ def emit_one_page(data, output, pageno, first_lap, n_laps, top_pos, n_pos, graph
                     mode = newmode
                 output.write('(%s) %d %d center %d moveto show\n' % (
                     ps_string(cell.car().car_no()),
-                    cell_x, CELL_WIDTH, cell_y))
+                    cell_x, lap_width, cell_y))
             elif not lap:
                 output.write('(%s) %d %d center %d moveto show\n' % (
                     ps_string(cell.car().car_no()),
                     MARGIN_LEFT, CELL_WIDTH, cell_y))
 
             if graph:
-                dot_x = cell_x + (CELL_WIDTH / 2)
+                dot_x = cell_x + (lap_width / 2)
                 output.write('%d %d dot\n' % (dot_x, cell_y))
                 if car_id in last_lap:
                     output.write('%d %d moveto %d %d lineto stroke\n'
@@ -268,13 +274,13 @@ def emit_one_page(data, output, pageno, first_lap, n_laps, top_pos, n_pos, graph
                         cell_y - FRAME_OFFSET,
                         cell_x + FRAME_OFFSET,
                         cell_y - FRAME_OFFSET + CELL_HEIGHT,
-                        cell_x + FRAME_OFFSET + CELL_WIDTH,
+                        cell_x + FRAME_OFFSET + lap_width,
                         cell_y - FRAME_OFFSET + CELL_HEIGHT))
                 elif bars[0]:
                     output.write('%d %d moveto %d %d lineto stroke\n' % (
                         cell_x + FRAME_OFFSET,
                         cell_y - FRAME_OFFSET + CELL_HEIGHT,
-                        cell_x + FRAME_OFFSET + CELL_WIDTH,
+                        cell_x + FRAME_OFFSET + lap_width,
                         cell_y - FRAME_OFFSET + CELL_HEIGHT))
                 elif bars[1]:
                     output.write('%d %d moveto %d %d lineto stroke\n' % (
