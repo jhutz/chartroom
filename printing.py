@@ -142,7 +142,7 @@ def place_image(output, x0, y0, halign, valign, scale, path):
     return (x0, y0, x0 + width, y0 + height)
 
 def emit_one_page(data, output, pageno, first_lap, n_laps, top_pos, n_pos,
-  graph=False, timescale=False):
+  graph=False, timescale=False, want_cars=None):
     page_bbox = (MARGIN_LEFT, None, None, PAGE_HEIGHT - MARGIN_TOP)
 
     output.write('%%%%Page: %d %d\n' % (pageno, pageno))
@@ -221,7 +221,7 @@ def emit_one_page(data, output, pageno, first_lap, n_laps, top_pos, n_pos,
     laps = data.num_laps()
     output.write('ChartModePlain\n')
     mode = "Plain"
-    max_time = data.max_behind().total_seconds() if timescale else None
+    max_time = data.max_behind(want_cars).total_seconds() if timescale else None
     if graph:
         last_lap = dict()
         car_color = dict()
@@ -236,6 +236,8 @@ def emit_one_page(data, output, pageno, first_lap, n_laps, top_pos, n_pos,
             lead = cell.lead()
             bars = cell.bars()
             car_id = cell.car()
+            if want_cars and car_id.car_no() not in want_cars:
+                continue
             if graph and max_time and cell.behind:
                 t = cell.behind.total_seconds()
                 cell_y = CHART_ORIGIN - int((t / max_time) * n_pos * row_height) - CELL_HEIGHT / 2
@@ -298,9 +300,12 @@ def emit_one_page(data, output, pageno, first_lap, n_laps, top_pos, n_pos,
     return page_bbox
 
 
-def save_ps(data, path, graph=False, timescale=False):
+def save_ps(data, path, graph=False, timescale=False, want_cars=None):
     fontfaces = { x[0] for x in Fonts.values() }
     doc_bbox = (None, None, None, None)
+
+    if want_cars and isinstance(want_cars, int):
+        want_cars = set(data.top_cars(want_cars))
 
     with open(path, 'w') as output:
         output.write('%!PS-Adobe-3.0\n')
@@ -327,7 +332,7 @@ def save_ps(data, path, graph=False, timescale=False):
         output.write('%%EndSetup\n')
 
         page_bbox = emit_one_page(data, output, 1, 1, data.num_laps(), 1, data.max_pos(),
-          graph=graph, timescale=timescale)
+          graph=graph, timescale=timescale, want_cars=want_cars)
         doc_bbox = bbox_union(doc_bbox, page_bbox)
         output.write('%%Trailer\n')
         output.write('%%%%Pages: %d\n' % 1)

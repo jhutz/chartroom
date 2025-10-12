@@ -176,8 +176,13 @@ class chartdata:
     def max_down(self):
         return self._max_down
 
-    def max_behind(self):
-        return self._max_behind
+    def max_behind(self, want_cars=None):
+        if not want_cars:
+            return self._max_behind
+        return max((
+            cell.behind for lap in self.cells for cell in lap
+            if cell and cell.behind and cell.car().car_no() in want_cars
+            ))
 
     def behind(self, val=None):
         if (val is not None and
@@ -199,6 +204,9 @@ class chartdata:
         if lap > len(self.cells): return None
         if pos > len(self.cells[lap-1]): return None
         return self.cells[lap-1][pos-1]
+
+    def top_cars(self, n=1):
+        return [ cell.car().car_no() for cell in self.cells[-1][:n] ]
 
     def add(self, car_id, lap=None, pos=None, lead=None, ptime=None):
         car = self.car(car_id, car_no=car_id, create=True)
