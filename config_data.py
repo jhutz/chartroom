@@ -1,5 +1,5 @@
 CR_VERSION = '0.1'
-CR_YEARS   = '2017-2019'
+CR_YEARS   = '2017-2019,2023,2025'
 CR_AUTHOR  = 'Jeffrey Hutzelman'
 CR_URL     = ''
 CR_EMAIL   = 'jhutz@cmu.edu'
@@ -41,7 +41,7 @@ class ChartRoomConfig:
 
         self.global_props = {}
         self.default_props = {
-                'sanction' : '25-RO-64086',
+                'sanction' : '26-RO-64086',
                 'venue'    : 'Road America',
                 'course'   : '4.048 Mile Course',
                 }
